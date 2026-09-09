@@ -55,12 +55,11 @@ export default function Hero({ onOpenAuth }) {
               animate="visible"
               className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.05] text-rich-black flex flex-wrap"
             >
-              <motion.span variants={child} className="mr-3 md:mr-4">Somewhere,</motion.span>
+              <motion.span variants={child} className="mr-3 md:mr-4">Your</motion.span>
+              <motion.span variants={child} className="italic text-vibrant-pink mr-3 md:mr-4">dating era</motion.span> 
               <br className="hidden md:block" />
-              <motion.span variants={child} className="italic text-vibrant-pink mr-3 md:mr-4">your person</motion.span> 
-              <motion.span variants={child} className="mr-3 md:mr-4">is</motion.span>
-              <br className="hidden md:block" />
-              <motion.span variants={child}>waiting.</motion.span>
+              <motion.span variants={child} className="mr-3 md:mr-4">starts</motion.span>
+              <motion.span variants={child}>here.</motion.span>
             </motion.h1>
           </div>
           
@@ -68,9 +67,9 @@ export default function Hero({ onOpenAuth }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-            className="font-sans text-lg md:text-xl text-rich-black/80 max-w-md mb-10 leading-relaxed text-balance"
+            className="font-sans text-lg md:text-xl text-rich-black/80 max-w-xl mb-10 leading-relaxed text-balance"
           >
-            Meet people who share your energy, values, and vision for something real.
+            Real people better meets - <span className="text-sm italic opacity-90">Meet people who share your energy, values, and vision for something real.</span>
           </motion.p>
           
           <motion.div 
@@ -80,12 +79,12 @@ export default function Hero({ onOpenAuth }) {
             className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
           >
             <Magnetic>
-              <button onClick={() => onOpenAuth('signup')} className="w-full sm:w-auto bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-vibrant-pink transition-all hover:shadow-hover hover:-translate-y-1 text-center group">
+              <button onClick={() => onOpenAuth('signup')} className="w-full sm:w-auto bg-rich-black text-pure-white font-sans text-xl sm:text-lg font-semibold px-10 py-6 sm:py-5 rounded-pill hover:bg-vibrant-pink transition-all hover:shadow-hover hover:-translate-y-1 text-center group">
                 <span className="inline-block transition-transform group-hover:scale-105">Find Your Match</span>
               </button>
             </Magnetic>
             <Magnetic>
-              <a href="#how-it-works" className="w-full sm:w-auto bg-transparent border border-rich-black/20 text-rich-black font-sans text-base font-medium px-8 py-4 rounded-pill hover:border-rich-black transition-all hover:-translate-y-1 text-center flex items-center justify-center">
+              <a href="#how-it-works" className="w-full sm:w-auto bg-transparent border-2 border-rich-black/20 text-rich-black font-sans text-xl sm:text-lg font-semibold px-10 py-6 sm:py-5 rounded-pill hover:border-rich-black transition-all hover:-translate-y-1 text-center flex items-center justify-center">
                 How It Works
               </a>
             </Magnetic>

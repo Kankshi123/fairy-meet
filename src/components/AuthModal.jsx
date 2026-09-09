@@ -116,6 +116,13 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
 
   const handleSignupFormSubmit = (e) => {
     e.preventDefault();
+    const form = e.target;
+    setFormData({
+      ...formData,
+      name: form.firstName.value,
+      email: form.email.value,
+      aadhaar: form.aadhaar.value
+    });
     setStep(3); // Move to Vibe Check
   };
 
@@ -128,7 +135,12 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
   const handleLoginFormSubmit = (e) => {
     e.preventDefault();
     const form = e.target;
-    setFormData({ mockGender: form.mockGender.value });
+    setFormData({ 
+      mockGender: form.mockGender.value,
+      email: form.email.value,
+      name: 'Seeker', // Default for login since we don't have it
+      aadhaar: 'XXXX XXXX XXXX'
+    });
     setStep(2); // Move to Face Verification
   };
 
@@ -140,7 +152,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
     
     // Automatically login after success
     setTimeout(() => {
-      onLogin(gender);
+      onLogin(gender, formData);
     }, 1500);
   };
 
@@ -155,7 +167,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       
       // Automatically login after success
       setTimeout(() => {
-        onLogin(formData.mockGender || 'Female');
+        onLogin(formData.mockGender || 'Female', formData);
       }, 1500);
     }, 2500);
   };
@@ -256,6 +268,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">First Name</label>
                     <input 
                       type="text" 
+                      name="firstName"
                       required
                       placeholder="e.g. Maya"
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"
@@ -265,6 +278,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Email</label>
                     <input 
                       type="email" 
+                      name="email"
                       required
                       placeholder="maya@example.com"
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"
@@ -274,6 +288,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Aadhaar Number</label>
                     <input 
                       type="text" 
+                      name="aadhaar"
                       required
                       pattern="\d{12}"
                       title="Please enter a valid 12-digit Aadhaar number"
@@ -388,7 +403,8 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                   <div>
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Email</label>
                     <input 
-                      type="email" 
+                      type="email"
+                      name="email" 
                       required
                       placeholder="maya@example.com"
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"

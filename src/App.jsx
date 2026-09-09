@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LandingPage from './LandingPage';
 import SeekerDashboard from './components/SeekerDashboard';
 import AuthModal from './components/AuthModal';
-import { SubscriptionModal, RechargeModal, ChatModal, CallModal } from './components/Modals';
+import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal } from './components/Modals';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
@@ -18,6 +18,8 @@ function App() {
   const [isRechargeOpen, setIsRechargeOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCallOpen, setIsCallOpen] = useState(false);
+  const [isDateOpen, setIsDateOpen] = useState(false);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   
   // Pending connection state
   const [activeCompanion, setActiveCompanion] = useState(null);
@@ -28,10 +30,15 @@ function App() {
     setIsAuthOpen(true);
   };
 
-  const handleLogin = (gender) => {
+  const handleLogin = (gender, authData = {}) => {
     setUser({
       gender,
-      subscriptionActive: false, // Start without subscription
+      name: authData.name || "Seeker",
+      email: authData.email || "",
+      aadhaar: authData.aadhaar || "",
+      nickname: "",
+      dob: "",
+      subscriptionActive: gender === 'Female', // Females get auto-subscription (free)
       walletBalance: 0
     });
     setIsAuthOpen(false);
@@ -43,17 +50,22 @@ function App() {
     setCurrentView('landing');
   };
 
+  const handleUpdateUser = (updates) => {
+    setUser({ ...user, ...updates });
+  };
+
   const handleInitiateContact = (type, companionName) => {
     setActiveCompanion(companionName);
     setPendingAction(type);
 
-    if (user.gender === 'Male' && !user.subscriptionActive) {
-      // Male users must subscribe first
+    if (!user.subscriptionActive && user.gender !== 'Female') {
+      // All users (except Female) must subscribe first
       setIsSubOpen(true);
     } else {
-      // Female, LGBTQ+ or already subscribed Male
+      // Already subscribed
       if (type === 'chat') setIsChatOpen(true);
       if (type === 'call') setIsCallOpen(true);
+      if (type === 'date') setIsDateOpen(true);
     }
   };
 
@@ -63,6 +75,7 @@ function App() {
     // Continue with the pending action
     if (pendingAction === 'chat') setIsChatOpen(true);
     if (pendingAction === 'call') setIsCallOpen(true);
+    if (pendingAction === 'date') setIsDateOpen(true);
   };
 
   return (
@@ -75,6 +88,8 @@ function App() {
           user={user} 
           onInitiateContact={handleInitiateContact} 
           onLogout={handleLogout}
+          onUpdateUser={handleUpdateUser}
+          onOpenProfile={() => setIsUserProfileOpen(true)}
         />
       )}
 
@@ -102,11 +117,26 @@ function App() {
         isOpen={isCallOpen} 
         onClose={() => setIsCallOpen(false)} 
         companionName={activeCompanion} 
+        isFree={user?.gender === 'Female'}
       />
       
       <RechargeModal 
         isOpen={isRechargeOpen} 
         onClose={() => setIsRechargeOpen(false)} 
+      />
+
+      <UserProfileModal
+        isOpen={isUserProfileOpen}
+        onClose={() => setIsUserProfileOpen(false)}
+        user={user}
+        onUpdateUser={handleUpdateUser}
+      />
+
+      <DateModal 
+        isOpen={isDateOpen}
+        onClose={() => setIsDateOpen(false)}
+        companionName={activeCompanion}
+        isFree={user?.gender === 'Female'}
       />
     </SmoothScroll>
   );
