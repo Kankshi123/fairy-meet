@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee } from 'lucide-react';
+import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee, Bell, Settings, Shield, EyeOff, UserCircle, Sliders, ChevronRight } from 'lucide-react';
 
 const Overlay = ({ children, onClose }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -443,6 +443,45 @@ export function DateModal({ isOpen, onClose, companionName, isFree }) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [locationType, setLocationType] = useState('Coffee'); // Coffee, Dinner, Activity
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsConfirmed(false);
+      setDate('');
+      setTime('');
+      setLocationType('Coffee');
+    }
+  }, [isOpen]);
+
+  const handleConfirm = () => {
+    // Play a delightful success chime
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.type = 'sine';
+      // Arpeggio C5 -> E5 -> G5
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {
+      console.error(e);
+    }
+    
+    // Switch to confirmed view
+    setIsConfirmed(true);
+  };
   
   if (!isOpen) return null;
 
@@ -461,12 +500,14 @@ export function DateModal({ isOpen, onClose, companionName, isFree }) {
             <Calendar className="w-8 h-8 text-vibrant-pink" />
           </div>
 
-          <div className="text-center mb-6">
-            <h2 className="font-serif text-2xl text-rich-black mb-1">Schedule a Date</h2>
-            <p className="font-sans text-sm text-rich-black/60">Plan a beautiful meeting with {companionName}</p>
-          </div>
+          {!isConfirmed ? (
+            <>
+              <div className="text-center mb-6">
+                <h2 className="font-serif text-2xl text-rich-black mb-1">Schedule a Date</h2>
+                <p className="font-sans text-sm text-rich-black/60">Plan a beautiful meeting with {companionName}</p>
+              </div>
 
-          <form className="flex flex-col gap-4">
+              <form className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-bold text-rich-black/60 uppercase tracking-widest mb-1">Date</label>
@@ -527,20 +568,231 @@ export function DateModal({ isOpen, onClose, companionName, isFree }) {
 
             <button 
               type="button"
-              onClick={() => {
-                if (isFree) {
-                  alert(`Date scheduled with ${companionName} successfully!`);
-                } else {
-                  alert(`Proceeding to payment gateway for ₹2000 to meet ${companionName}`);
-                }
-                onClose();
-              }}
-              className="w-full bg-rich-black text-pure-white font-sans font-medium py-3.5 rounded-xl hover:bg-vibrant-pink transition-colors mt-2"
+              onClick={handleConfirm}
+              disabled={!date || !time}
+              className="w-full bg-rich-black text-pure-white font-sans font-medium py-3.5 rounded-xl hover:bg-vibrant-pink disabled:opacity-50 disabled:hover:bg-rich-black transition-colors mt-2"
             >
               {isFree ? 'Confirm Booking' : 'Proceed to Payment'}
             </button>
           </form>
+          </>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center text-center py-4"
+            >
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 shadow-soft">
+                <Sparkles className="w-10 h-10 text-green-500" />
+              </div>
+              <h2 className="font-serif text-3xl text-rich-black mb-3">Date Fixed!</h2>
+              <p className="font-sans text-rich-black/70 mb-8 italic text-sm px-4">
+                "The best things in life are the people we love, the places we've been, and the memories we'll make."
+              </p>
+              
+              <div className="w-full bg-off-white rounded-2xl p-4 mb-8 border border-rich-black/5 text-left flex items-center gap-4">
+                <div className="w-12 h-12 bg-vibrant-pink/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-vibrant-pink" />
+                </div>
+                <div>
+                  <p className="font-sans text-sm text-rich-black font-semibold mb-0.5">Meeting with {companionName}</p>
+                  <p className="font-sans text-xs text-rich-black/60 capitalize">
+                    {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {time} • {locationType}
+                  </p>
+                </div>
+              </div>
 
+              <button 
+                onClick={onClose}
+                className="w-full bg-rich-black text-pure-white font-sans font-medium py-3.5 rounded-xl hover:bg-vibrant-pink transition-colors shadow-hover"
+              >
+                Awesome
+              </button>
+            </motion.div>
+          )}
+
+        </motion.div>
+      </Overlay>
+    </AnimatePresence>
+  );
+}
+
+export function NotificationsModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  const notifications = [
+    { id: 1, type: 'match', text: "Someone liked your profile!", time: "2m ago", unread: true },
+    { id: 2, type: 'system', text: "Don't forget to use your free chat.", time: "1h ago", unread: true },
+    { id: 3, type: 'activity', text: "Maya is online right now.", time: "3h ago", unread: false },
+    { id: 4, type: 'system', text: "Welcome to Fairy Meet! Your dating era starts here.", time: "1d ago", unread: false },
+  ];
+
+  return (
+    <AnimatePresence>
+      <Overlay onClose={onClose}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-sm bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8 max-h-[80vh]"
+        >
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors z-10">
+            <X className="w-4 h-4" />
+          </button>
+          
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-full bg-vibrant-pink/10 flex items-center justify-center">
+              <Bell className="w-6 h-6 text-vibrant-pink" />
+            </div>
+            <h2 className="font-serif text-2xl text-rich-black">Notifications</h2>
+          </div>
+
+          <div className="flex-grow overflow-y-auto pr-2 -mr-2 space-y-3">
+            {notifications.map(notif => (
+              <div key={notif.id} className={`p-4 rounded-2xl border ${notif.unread ? 'bg-off-white border-vibrant-pink/20' : 'bg-white border-rich-black/5'} transition-colors`}>
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`font-sans text-sm font-medium ${notif.unread ? 'text-rich-black' : 'text-rich-black/70'}`}>
+                    {notif.text}
+                  </span>
+                  {notif.unread && <div className="w-2 h-2 rounded-full bg-vibrant-pink mt-1.5 flex-shrink-0" />}
+                </div>
+                <span className="font-sans text-[10px] text-rich-black/40 uppercase tracking-widest font-bold">
+                  {notif.time}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </Overlay>
+    </AnimatePresence>
+  );
+}
+
+export function SettingsModal({ isOpen, onClose, user }) {
+  const [activeTab, setActiveTab] = useState('discovery'); // discovery, account, privacy
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <Overlay onClose={onClose}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-md bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8 h-[600px] max-h-[90vh]"
+        >
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors z-10">
+            <X className="w-4 h-4" />
+          </button>
+          
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-full bg-rich-black/5 flex items-center justify-center">
+              <Settings className="w-6 h-6 text-rich-black" />
+            </div>
+            <h2 className="font-serif text-2xl text-rich-black">Settings</h2>
+          </div>
+
+          <div className="flex gap-2 mb-6 border-b border-rich-black/10 pb-2">
+            <button 
+              onClick={() => setActiveTab('discovery')}
+              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'discovery' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
+            >
+              Discovery
+            </button>
+            <button 
+              onClick={() => setActiveTab('account')}
+              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'account' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
+            >
+              Account
+            </button>
+            <button 
+              onClick={() => setActiveTab('privacy')}
+              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'privacy' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
+            >
+              Privacy
+            </button>
+          </div>
+
+          <div className="flex-grow overflow-y-auto pr-2 -mr-2">
+            {activeTab === 'discovery' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-sans text-sm font-semibold text-rich-black">Maximum Distance</span>
+                    <span className="font-sans text-sm text-rich-black/60">50 km</span>
+                  </div>
+                  <input type="range" min="1" max="100" defaultValue="50" className="w-full accent-vibrant-pink" />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-sans text-sm font-semibold text-rich-black">Age Range</span>
+                    <span className="font-sans text-sm text-rich-black/60">18 - 35</span>
+                  </div>
+                  <input type="range" min="18" max="60" defaultValue="35" className="w-full accent-vibrant-pink" />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-off-white rounded-2xl">
+                  <div>
+                    <span className="block font-sans text-sm font-semibold text-rich-black">Global Mode</span>
+                    <span className="block font-sans text-xs text-rich-black/60">See people from around the world</span>
+                  </div>
+                  <div className="w-12 h-6 bg-vibrant-pink rounded-full relative cursor-pointer">
+                    <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'account' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <div className="p-4 bg-off-white rounded-2xl flex items-center justify-between cursor-pointer hover:bg-rich-black/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <UserCircle className="w-5 h-5 text-rich-black/60" />
+                    <div>
+                      <span className="block font-sans text-sm font-semibold text-rich-black">Phone Number</span>
+                      <span className="block font-sans text-xs text-rich-black/60">+91 98765 43210</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-rich-black/40" />
+                </div>
+                <div className="p-4 bg-off-white rounded-2xl flex items-center justify-between cursor-pointer hover:bg-rich-black/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <MessageCircle className="w-5 h-5 text-rich-black/60" />
+                    <div>
+                      <span className="block font-sans text-sm font-semibold text-rich-black">Email Address</span>
+                      <span className="block font-sans text-xs text-rich-black/60">{user?.email || 'Not verified'}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-rich-black/40" />
+                </div>
+                <button className="w-full py-4 text-center font-sans text-sm font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-colors mt-4">
+                  Delete Account
+                </button>
+              </motion.div>
+            )}
+
+            {activeTab === 'privacy' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <div className="flex items-center justify-between p-4 border border-rich-black/10 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <EyeOff className="w-5 h-5 text-rich-black/60" />
+                    <div>
+                      <span className="block font-sans text-sm font-semibold text-rich-black">Incognito Mode</span>
+                      <span className="block font-sans text-xs text-rich-black/60">Hide my profile from discovery</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-6 bg-rich-black/20 rounded-full relative cursor-pointer">
+                    <div className="w-5 h-5 bg-white rounded-full absolute left-0.5 top-0.5 shadow-sm"></div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-4 border border-rich-black/10 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-rich-black/60" />
+                    <div>
+                      <span className="block font-sans text-sm font-semibold text-rich-black">Blocked Contacts</span>
+                      <span className="block font-sans text-xs text-rich-black/60">0 users blocked</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-rich-black/40" />
+                </div>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
       </Overlay>
     </AnimatePresence>

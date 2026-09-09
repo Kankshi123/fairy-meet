@@ -172,7 +172,7 @@ const SwipeCard = ({ comp, onSwipe, isTop, onViewProfile }) => {
   );
 };
 
-export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile }) {
+export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile, onOpenNotifications, onOpenSettings }) {
   const [viewMode, setViewMode] = useState('swipe'); // 'grid' or 'swipe'
   const [selectedComp, setSelectedComp] = useState(null);
   
@@ -208,10 +208,10 @@ export default function SeekerDashboard({ onInitiateContact, user, onLogout, onU
               <span className="hidden sm:inline text-xs uppercase tracking-widest font-semibold text-rich-black/60">Wallet</span>
               <span className="font-medium text-rich-black text-sm sm:text-base">₹{user.walletBalance}</span>
             </div>
-            <button className="text-rich-black/60 hover:text-vibrant-pink transition-colors">
+            <button onClick={onOpenNotifications} className="text-rich-black/60 hover:text-vibrant-pink transition-colors">
               <Bell className="w-5 h-5" />
             </button>
-            <button className="text-rich-black/60 hover:text-vibrant-pink transition-colors">
+            <button onClick={onOpenSettings} className="text-rich-black/60 hover:text-vibrant-pink transition-colors">
               <Settings className="w-5 h-5" />
             </button>
             <button onClick={onLogout} className="text-rich-black/60 hover:text-vibrant-pink transition-colors">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LandingPage from './LandingPage';
 import SeekerDashboard from './components/SeekerDashboard';
 import AuthModal from './components/AuthModal';
-import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal } from './components/Modals';
+import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal, NotificationsModal, SettingsModal } from './components/Modals';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
@@ -20,6 +20,8 @@ function App() {
   const [isCallOpen, setIsCallOpen] = useState(false);
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Pending connection state
   const [activeCompanion, setActiveCompanion] = useState(null);
@@ -90,6 +92,8 @@ function App() {
           onLogout={handleLogout}
           onUpdateUser={handleUpdateUser}
           onOpenProfile={() => setIsUserProfileOpen(true)}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
 
@@ -137,6 +141,17 @@ function App() {
         onClose={() => setIsDateOpen(false)}
         companionName={activeCompanion}
         isFree={user?.gender === 'Female'}
+      />
+
+      <NotificationsModal 
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
+
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        user={user}
       />
     </SmoothScroll>
   );
