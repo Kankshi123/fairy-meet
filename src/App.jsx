@@ -6,6 +6,7 @@ import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModa
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
+import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing');
@@ -153,6 +154,7 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         user={user}
       />
+      <ChatbotWidget />
     </SmoothScroll>
   );
 }
