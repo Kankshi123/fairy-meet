@@ -46,19 +46,19 @@ export default function Hero({ onOpenAuth }) {
         
         {/* Left Column: Text Content */}
         <div className="w-full lg:w-1/2 flex flex-col items-start z-10">
-          <div className="relative mb-6">
+          <div className="relative mb-6 mt-12 lg:mt-0">
             <Sparkles className="absolute -top-6 -left-6 w-6 h-6 text-vibrant-pink opacity-80" />
             
             <motion.h1 
               variants={container}
               initial="hidden"
               animate="visible"
-              className="font-serif text-6xl md:text-7xl lg:text-[80px] leading-[1.05] text-rich-black flex flex-wrap"
+              className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.05] text-rich-black flex flex-wrap"
             >
-              <motion.span variants={child} className="mr-4">Somewhere,</motion.span>
+              <motion.span variants={child} className="mr-3 md:mr-4">Somewhere,</motion.span>
               <br className="hidden md:block" />
-              <motion.span variants={child} className="italic text-vibrant-pink mr-4">your person</motion.span> 
-              <motion.span variants={child} className="mr-4">is</motion.span>
+              <motion.span variants={child} className="italic text-vibrant-pink mr-3 md:mr-4">your person</motion.span> 
+              <motion.span variants={child} className="mr-3 md:mr-4">is</motion.span>
               <br className="hidden md:block" />
               <motion.span variants={child}>waiting.</motion.span>
             </motion.h1>
@@ -93,12 +93,12 @@ export default function Hero({ onOpenAuth }) {
         </div>
 
         {/* Right Column: Imagery Collage (Parallax) */}
-        <div className="w-full lg:w-1/2 relative h-[500px] sm:h-[600px] lg:h-[700px] flex justify-center items-center">
+        <div className="w-full lg:w-1/2 relative h-[400px] sm:h-[500px] lg:h-[700px] flex justify-center items-center mt-12 lg:mt-0">
           
           {/* Main Portrait */}
           <motion.div 
             style={{ y: y1 }}
-            className="absolute z-10 w-[70%] sm:w-[60%] lg:w-[65%] h-[80%] rounded-[40px] overflow-hidden shadow-soft border border-pure-white/50"
+            className="absolute z-10 w-[75%] sm:w-[60%] lg:w-[65%] h-[80%] rounded-[32px] md:rounded-[40px] overflow-hidden shadow-soft border border-pure-white/50"
           >
             <motion.div 
               className="w-full h-full"
@@ -116,7 +116,7 @@ export default function Hero({ onOpenAuth }) {
           {/* Secondary Portrait (Overlap) */}
           <motion.div 
             style={{ y: y2 }}
-            className="absolute z-20 -right-4 sm:right-4 lg:-right-8 top-[10%] w-[45%] h-[40%] rounded-2xl sm:rounded-[32px] overflow-hidden shadow-hover border-4 border-off-white"
+            className="absolute z-20 -right-2 sm:right-4 lg:-right-8 top-[5%] sm:top-[10%] w-[50%] h-[45%] rounded-2xl sm:rounded-[32px] overflow-hidden shadow-hover border-4 border-off-white"
           >
             <motion.div
               className="w-full h-full"
@@ -136,9 +136,9 @@ export default function Hero({ onOpenAuth }) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 1 }}
-            className="absolute z-30 -left-2 sm:left-4 lg:-left-6 bottom-[15%] bg-pure-white/95 backdrop-blur-md p-5 rounded-2xl shadow-hover border border-off-white max-w-[200px]"
+            className="absolute z-30 -left-2 sm:left-4 lg:-left-6 bottom-[10%] sm:bottom-[15%] bg-pure-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl shadow-hover border border-off-white w-[160px] sm:max-w-[200px]"
           >
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-off-white flex items-center justify-center">
                 <Heart className="w-5 h-5 text-vibrant-pink fill-vibrant-pink" />
               </div>

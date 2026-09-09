@@ -160,7 +160,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-off-white rounded-2xl md:rounded-[32px] shadow-hover overflow-hidden flex flex-col"
+          className="relative w-full max-w-md max-h-[95vh] sm:max-h-[90vh] bg-off-white rounded-2xl md:rounded-[32px] shadow-hover overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b border-rich-black/10">
@@ -188,7 +188,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
           </div>
 
           {/* Content */}
-          <div className="p-6 md:p-8">
+          <div className="p-6 md:p-8 overflow-y-auto">
             
             {/* SIGN UP FLOW */}
             {mode === 'signup' && step === 1 && (
