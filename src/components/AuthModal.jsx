@@ -152,7 +152,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
     
     // Automatically login after success
     setTimeout(() => {
-      onLogin(gender, formData);
+      onLogin(gender, { ...formData, photo: dataUrl });
     }, 1500);
   };
 
@@ -167,7 +167,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       
       // Automatically login after success
       setTimeout(() => {
-        onLogin(formData.mockGender || 'Female', formData);
+        onLogin(formData.mockGender || 'Female', { ...formData, photo: dataUrl });
       }, 1500);
     }, 2500);
   };

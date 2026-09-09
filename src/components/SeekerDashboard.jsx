@@ -45,15 +45,6 @@ const ProfilePopup = ({ comp, onClose, onAction, user }) => {
                 <span className="font-medium">Call</span>
               </button>
             </div>
-            <button onClick={() => { onClose(); onAction('date', comp.name); }} className="w-full flex flex-col items-center justify-center gap-1 bg-vibrant-pink/10 text-vibrant-pink py-3 rounded-xl border border-vibrant-pink hover:bg-vibrant-pink hover:text-white transition-colors">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                <span className="font-medium">Schedule a Date</span>
-              </div>
-              {user?.gender !== 'Female' && (
-                <span className="text-xs opacity-80 uppercase tracking-widest font-bold">Min. ₹2000</span>
-              )}
-            </button>
           </div>
         </div>
       </motion.div>
@@ -172,7 +163,7 @@ const SwipeCard = ({ comp, onSwipe, isTop, onViewProfile }) => {
   );
 };
 
-export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile, onOpenNotifications, onOpenSettings }) {
+export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile, onOpenNotifications, onOpenSettings, onOpenWallet }) {
   const [viewMode, setViewMode] = useState('swipe'); // 'grid' or 'swipe'
   const [selectedComp, setSelectedComp] = useState(null);
   
@@ -204,10 +195,10 @@ export default function SeekerDashboard({ onInitiateContact, user, onLogout, onU
             <span className="font-serif text-2xl font-bold tracking-tight text-rich-black">FAIRY MEET</span>
           </div>
           <div className="flex items-center gap-3 sm:gap-6">
-            <div className="flex items-center gap-1 sm:gap-2 bg-off-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+            <button onClick={onOpenWallet} className="flex items-center gap-1 sm:gap-2 bg-off-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full hover:bg-vibrant-pink/10 hover:ring-1 hover:ring-vibrant-pink/30 transition-all">
               <span className="hidden sm:inline text-xs uppercase tracking-widest font-semibold text-rich-black/60">Wallet</span>
               <span className="font-medium text-rich-black text-sm sm:text-base">₹{user.walletBalance}</span>
-            </div>
+            </button>
             <button onClick={onOpenNotifications} className="text-rich-black/60 hover:text-vibrant-pink transition-colors">
               <Bell className="w-5 h-5" />
             </button>
@@ -219,9 +210,9 @@ export default function SeekerDashboard({ onInitiateContact, user, onLogout, onU
             </button>
             <button 
               onClick={onOpenProfile}
-              className="w-10 h-10 rounded-full bg-vibrant-pink flex items-center justify-center text-white font-serif text-lg hover:ring-2 hover:ring-vibrant-pink hover:ring-offset-2 transition-all cursor-pointer"
+              className="w-10 h-10 rounded-full bg-vibrant-pink flex items-center justify-center text-white font-serif text-lg hover:ring-2 hover:ring-vibrant-pink hover:ring-offset-2 transition-all cursor-pointer overflow-hidden"
             >
-              {user.gender.charAt(0)}
+              {user.photo ? <img src={user.photo} alt="Profile" className="w-full h-full object-cover" /> : user.gender.charAt(0)}
             </button>
           </div>
         </div>

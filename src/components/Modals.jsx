@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee, Bell, Settings, Shield, EyeOff, UserCircle, Sliders, ChevronRight } from 'lucide-react';
+import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee, Bell, Settings, Shield, EyeOff, UserCircle, ChevronRight, Camera, Plus, CreditCard, CheckCircle } from 'lucide-react';
 
 const Overlay = ({ children, onClose }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -55,7 +55,7 @@ export function SubscriptionModal({ isOpen, onClose, onSubscribe }) {
   );
 }
 
-export function ChatModal({ isOpen, onClose, companionName }) {
+export function ChatModal({ isOpen, onClose, companionName, onScheduleDate }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -92,9 +92,15 @@ export function ChatModal({ isOpen, onClose, companionName }) {
                 <span className="font-sans text-xs text-green-600 font-medium">Online</span>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onScheduleDate} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-vibrant-pink/10 text-vibrant-pink hover:bg-vibrant-pink hover:text-white transition-colors border border-vibrant-pink/20" title="Plan a Meetup">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="font-sans text-[11px] font-bold uppercase tracking-widest">Plan Meetup</span>
+              </button>
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -283,6 +289,10 @@ export function RechargeModal({ isOpen, onClose }) {
 
 export function UserProfileModal({ isOpen, onClose, user, onUpdateUser }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const videoRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const streamRef = React.useRef(null);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     nickname: user?.nickname || '',
@@ -304,27 +314,59 @@ export function UserProfileModal({ isOpen, onClose, user, onUpdateUser }) {
     }
   }, [isOpen, user]);
 
+  useEffect(() => {
+    if (isCameraOpen) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then(stream => { streamRef.current = stream; if (videoRef.current) videoRef.current.srcObject = stream; })
+        .catch(() => alert('Camera access denied.'));
+    } else {
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    }
+    return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
+  }, [isCameraOpen]);
+
   if (!isOpen || !user) return null;
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    onUpdateUser(formData);
-    setIsEditing(false);
+  const handleCapture = () => {
+    const canvas = canvasRef.current, video = videoRef.current;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    onUpdateUser({ photo: canvas.toDataURL('image/png') });
+    setIsCameraOpen(false);
   };
+
+  const handleSave = (e) => { e.preventDefault(); onUpdateUser(formData); setIsEditing(false); };
 
   return (
     <AnimatePresence>
       <Overlay onClose={onClose}>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-sm bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8"
+          className="relative w-full max-w-sm bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8 max-h-[90vh] overflow-y-auto"
         >
           <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors z-10">
             <X className="w-4 h-4" />
           </button>
-          
-          <div className="w-20 h-20 rounded-full bg-vibrant-pink flex items-center justify-center mx-auto mb-4 text-white font-serif text-3xl shadow-sm">
-            {user.gender.charAt(0)}
+          <AnimatePresence>
+            {isCameraOpen && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-rich-black z-20 flex flex-col items-center justify-center p-6 rounded-[32px]">
+                <p className="font-serif text-xl text-white mb-4">Take a Photo</p>
+                <video ref={videoRef} autoPlay playsInline className="w-full rounded-2xl mb-4 max-h-52 object-cover" />
+                <canvas ref={canvasRef} className="hidden" />
+                <div className="flex gap-3 w-full">
+                  <button onClick={() => setIsCameraOpen(false)} className="flex-1 py-3 bg-white/10 text-white rounded-xl text-sm hover:bg-white/20 transition-colors">Cancel</button>
+                  <button onClick={handleCapture} className="flex-1 py-3 bg-vibrant-pink text-white rounded-xl text-sm hover:bg-vibrant-pink/90 transition-colors">Capture</button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="w-20 h-20 rounded-full bg-vibrant-pink flex items-center justify-center text-white font-serif text-3xl shadow-sm overflow-hidden">
+              {user.photo ? <img src={user.photo} alt="Profile" className="w-full h-full object-cover" /> : user.gender.charAt(0)}
+            </div>
+            <button onClick={() => setIsCameraOpen(true)} className="absolute -bottom-1 -right-1 w-7 h-7 bg-rich-black rounded-full flex items-center justify-center text-white hover:bg-vibrant-pink transition-colors shadow-sm">
+              <Camera className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {!isEditing ? (
@@ -439,7 +481,7 @@ export function UserProfileModal({ isOpen, onClose, user, onUpdateUser }) {
   );
 }
 
-export function DateModal({ isOpen, onClose, companionName, isFree }) {
+export function DateModal({ isOpen, onClose, companionName, isFree, onAddBooking }) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [locationType, setLocationType] = useState('Coffee'); // Coffee, Dinner, Activity
@@ -480,6 +522,7 @@ export function DateModal({ isOpen, onClose, companionName, isFree }) {
     }
     
     // Switch to confirmed view
+    if (onAddBooking) onAddBooking({ companionName, date, time, locationType, isFree });
     setIsConfirmed(true);
   };
   
@@ -665,51 +708,53 @@ export function NotificationsModal({ isOpen, onClose }) {
   );
 }
 
-export function SettingsModal({ isOpen, onClose, user }) {
-  const [activeTab, setActiveTab] = useState('discovery'); // discovery, account, privacy
-
+export function SettingsModal({ isOpen, onClose, user, bookings = [], conversations = [], transactions = [] }) {
+  const [activeTab, setActiveTab] = useState('discovery');
   if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'discovery', label: 'Discovery' },
+    { id: 'account', label: 'Account' },
+    { id: 'privacy', label: 'Privacy' },
+    { id: 'bookings', label: 'Bookings' },
+    { id: 'conversations', label: 'Chats' },
+    { id: 'transactions', label: 'Payments' },
+  ];
+
+  const EmptyState = ({ icon: Icon, message }) => (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="w-14 h-14 bg-off-white rounded-full flex items-center justify-center mb-3">
+        <Icon className="w-7 h-7 text-rich-black/30" />
+      </div>
+      <p className="font-sans text-sm text-rich-black/50">{message}</p>
+    </div>
+  );
 
   return (
     <AnimatePresence>
       <Overlay onClose={onClose}>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8 h-[600px] max-h-[90vh]"
+          className="relative w-full max-w-md bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8 h-[620px] max-h-[90vh]"
         >
           <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors z-10">
             <X className="w-4 h-4" />
           </button>
-          
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-5">
             <div className="w-12 h-12 rounded-full bg-rich-black/5 flex items-center justify-center">
               <Settings className="w-6 h-6 text-rich-black" />
             </div>
             <h2 className="font-serif text-2xl text-rich-black">Settings</h2>
           </div>
-
-          <div className="flex gap-2 mb-6 border-b border-rich-black/10 pb-2">
-            <button 
-              onClick={() => setActiveTab('discovery')}
-              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'discovery' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
-            >
-              Discovery
-            </button>
-            <button 
-              onClick={() => setActiveTab('account')}
-              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'account' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
-            >
-              Account
-            </button>
-            <button 
-              onClick={() => setActiveTab('privacy')}
-              className={`font-sans text-xs uppercase tracking-widest font-bold px-3 py-2 rounded-xl transition-colors ${activeTab === 'privacy' ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}
-            >
-              Privacy
-            </button>
+          <div className="flex gap-2 mb-5 border-b border-rich-black/10 pb-3 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)}
+                className={`font-sans text-[11px] uppercase tracking-widest font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-colors flex-shrink-0 ${activeTab === t.id ? 'bg-rich-black text-white' : 'text-rich-black/50 hover:bg-off-white'}`}>
+                {t.label}
+              </button>
+            ))}
           </div>
-
-          <div className="flex-grow overflow-y-auto pr-2 -mr-2">
+          <div className="flex-grow overflow-y-auto pr-1 -mr-1">
             {activeTab === 'discovery' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <div>
@@ -737,7 +782,6 @@ export function SettingsModal({ isOpen, onClose, user }) {
                 </div>
               </motion.div>
             )}
-
             {activeTab === 'account' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <div className="p-4 bg-off-white rounded-2xl flex items-center justify-between cursor-pointer hover:bg-rich-black/5 transition-colors">
@@ -760,12 +804,9 @@ export function SettingsModal({ isOpen, onClose, user }) {
                   </div>
                   <ChevronRight className="w-4 h-4 text-rich-black/40" />
                 </div>
-                <button className="w-full py-4 text-center font-sans text-sm font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-colors mt-4">
-                  Delete Account
-                </button>
+                <button className="w-full py-4 text-center font-sans text-sm font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-colors mt-4">Delete Account</button>
               </motion.div>
             )}
-
             {activeTab === 'privacy' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <div className="flex items-center justify-between p-4 border border-rich-black/10 rounded-2xl">
@@ -792,7 +833,158 @@ export function SettingsModal({ isOpen, onClose, user }) {
                 </div>
               </motion.div>
             )}
+            {activeTab === 'bookings' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {bookings.length === 0
+                  ? <EmptyState icon={Calendar} message="No date bookings yet. Schedule your first date!" />
+                  : <div className="space-y-3">{bookings.map(b => (
+                    <div key={b.id} className="p-4 bg-off-white rounded-2xl border border-rich-black/5">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-sans text-sm font-semibold text-rich-black">Date with {b.companionName}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-widest bg-green-100 text-green-700 px-2 py-1 rounded-full">{b.status}</span>
+                      </div>
+                      <p className="font-sans text-xs text-rich-black/60 mb-1">
+                        {new Date(b.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {b.time}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="font-sans text-xs text-rich-black/50 capitalize">{b.locationType}</span>
+                        <span className="text-rich-black/20">•</span>
+                        <span className="font-sans text-xs text-rich-black/50">{b.isFree ? 'Free' : '₹2000'}</span>
+                      </div>
+                    </div>
+                  ))}</div>}
+              </motion.div>
+            )}
+            {activeTab === 'conversations' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {conversations.length === 0
+                  ? <EmptyState icon={MessageCircle} message="No conversations yet. Start chatting!" />
+                  : <div className="space-y-3">{conversations.map(c => (
+                    <div key={c.id} className="p-4 bg-off-white rounded-2xl border border-rich-black/5 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${c.type === 'call' ? 'bg-green-100' : 'bg-vibrant-pink/10'}`}>
+                        {c.type === 'call' ? <Phone className="w-4 h-4 text-green-600" /> : <MessageCircle className="w-4 h-4 text-vibrant-pink" />}
+                      </div>
+                      <div>
+                        <p className="font-sans text-sm font-semibold text-rich-black capitalize">{c.type} with {c.companionName}</p>
+                        <p className="font-sans text-xs text-rich-black/60 mt-0.5">
+                          {new Date(c.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(c.startedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}</div>}
+              </motion.div>
+            )}
+            {activeTab === 'transactions' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {transactions.length === 0
+                  ? <EmptyState icon={CreditCard} message="No transactions yet." />
+                  : <div className="space-y-3">{transactions.map(t => (
+                    <div key={t.id} className="p-4 bg-off-white rounded-2xl border border-rich-black/5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${t.type === 'wallet_recharge' ? 'bg-green-100' : 'bg-rich-black/5'}`}>
+                          {t.type === 'wallet_recharge' ? <Plus className="w-4 h-4 text-green-600" /> : <CreditCard className="w-4 h-4 text-rich-black/60" />}
+                        </div>
+                        <div>
+                          <p className="font-sans text-sm font-semibold text-rich-black">{t.description}</p>
+                          <p className="font-sans text-xs text-rich-black/60 mt-0.5">{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        </div>
+                      </div>
+                      <span className={`font-sans text-sm font-bold ${t.type === 'wallet_recharge' ? 'text-green-600' : 'text-rich-black'}`}>
+                        {t.type === 'wallet_recharge' ? '+' : '-'}₹{t.amount}
+                      </span>
+                    </div>
+                  ))}</div>}
+              </motion.div>
+            )}
           </div>
+        </motion.div>
+      </Overlay>
+    </AnimatePresence>
+  );
+}
+
+export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance }) {
+  const [selectedAmount, setSelectedAmount] = useState(null);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const presets = [99, 199, 499, 999];
+
+  useEffect(() => {
+    if (!isOpen) { setSelectedAmount(null); setCustomAmount(''); setIsSuccess(false); }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+  const finalAmount = selectedAmount || parseInt(customAmount) || 0;
+
+  const handlePay = () => {
+    if (!finalAmount || finalAmount < 1) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(); osc.stop(ctx.currentTime + 0.4);
+    } catch(e) {}
+    setIsSuccess(true);
+    setTimeout(() => onAddBalance(finalAmount), 1000);
+  };
+
+  return (
+    <AnimatePresence>
+      <Overlay onClose={onClose}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-sm bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col p-8"
+        >
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors z-10">
+            <X className="w-4 h-4" />
+          </button>
+          <AnimatePresence mode="wait">
+            {isSuccess ? (
+              <motion.div key="s" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-center py-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle className="w-10 h-10 text-green-500" />
+                </div>
+                <h2 className="font-serif text-3xl text-rich-black mb-2">Added!</h2>
+                <p className="font-sans text-rich-black/60 text-sm">₹{finalAmount} added to your wallet successfully.</p>
+              </motion.div>
+            ) : (
+              <motion.div key="f" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-vibrant-pink/10 flex items-center justify-center">
+                    <Wallet className="w-6 h-6 text-vibrant-pink" />
+                  </div>
+                  <div>
+                    <h2 className="font-serif text-2xl text-rich-black">Add Money</h2>
+                    <p className="font-sans text-xs text-rich-black/60">Balance: ₹{currentBalance}</p>
+                  </div>
+                </div>
+                <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-rich-black/50 mb-3">Quick Add</p>
+                <div className="grid grid-cols-4 gap-2 mb-5">
+                  {presets.map(p => (
+                    <button key={p} onClick={() => { setSelectedAmount(p); setCustomAmount(''); }}
+                      className={`py-3 rounded-xl font-sans text-sm font-semibold transition-colors border ${selectedAmount === p ? 'bg-rich-black text-white border-rich-black' : 'bg-off-white text-rich-black border-transparent hover:border-rich-black/20'}`}>
+                      ₹{p}
+                    </button>
+                  ))}
+                </div>
+                <p className="font-sans text-[10px] font-bold uppercase tracking-widest text-rich-black/50 mb-2">Or Enter Amount</p>
+                <input type="number" min="1" value={customAmount}
+                  onChange={e => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
+                  placeholder="Enter custom amount"
+                  className="w-full border border-rich-black/10 rounded-xl px-4 py-3 font-sans text-sm text-rich-black outline-none focus:border-vibrant-pink transition-all mb-5"
+                />
+                <button onClick={handlePay} disabled={!finalAmount || finalAmount < 1}
+                  className="w-full bg-rich-black text-white font-sans font-semibold py-4 rounded-xl hover:bg-vibrant-pink disabled:opacity-40 disabled:hover:bg-rich-black transition-colors">
+                  Pay ₹{finalAmount || '0'} via UPI / Card
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </Overlay>
     </AnimatePresence>

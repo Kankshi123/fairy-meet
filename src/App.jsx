@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LandingPage from './LandingPage';
 import SeekerDashboard from './components/SeekerDashboard';
 import AuthModal from './components/AuthModal';
-import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal, NotificationsModal, SettingsModal } from './components/Modals';
+import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal, NotificationsModal, SettingsModal, WalletModal } from './components/Modals';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
@@ -10,7 +10,12 @@ import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing');
-  const [user, setUser] = useState(null); // { gender, subscriptionActive, walletBalance }
+  const [user, setUser] = useState(null);
+
+  // Activity data
+  const [bookings, setBookings] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   
   // Modal states
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -23,6 +28,7 @@ function App() {
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
   
   // Pending connection state
   const [activeCompanion, setActiveCompanion] = useState(null);
@@ -41,6 +47,7 @@ function App() {
       aadhaar: authData.aadhaar || "",
       nickname: "",
       dob: "",
+      photo: authData.photo || "",
       subscriptionActive: gender === 'Female', // Females get auto-subscription (free)
       walletBalance: 0
     });
@@ -73,12 +80,37 @@ function App() {
   };
 
   const handleSubscribe = () => {
+    const newTransaction = { id: Date.now(), type: 'subscription', amount: 199, description: '1-Month Active Pass', date: new Date().toISOString() };
     setUser({ ...user, subscriptionActive: true });
+    setTransactions(prev => [newTransaction, ...prev]);
     setIsSubOpen(false);
-    // Continue with the pending action
-    if (pendingAction === 'chat') setIsChatOpen(true);
-    if (pendingAction === 'call') setIsCallOpen(true);
+    if (pendingAction === 'chat') {
+      setConversations(prev => [{ id: Date.now(), companionName: activeCompanion, type: 'chat', startedAt: new Date().toISOString() }, ...prev]);
+      setIsChatOpen(true);
+    }
+    if (pendingAction === 'call') {
+      setConversations(prev => [{ id: Date.now(), companionName: activeCompanion, type: 'call', startedAt: new Date().toISOString() }, ...prev]);
+      setIsCallOpen(true);
+    }
     if (pendingAction === 'date') setIsDateOpen(true);
+  };
+
+  const handleAddBooking = (bookingData) => {
+    const newBooking = { id: Date.now(), ...bookingData, status: 'Confirmed', bookedAt: new Date().toISOString() };
+    setBookings(prev => [newBooking, ...prev]);
+    const newTransaction = { id: Date.now() + 1, type: 'date_booking', amount: bookingData.isFree ? 0 : 2000, description: `Date with ${bookingData.companionName}`, date: new Date().toISOString() };
+    if (!bookingData.isFree) setTransactions(prev => [newTransaction, ...prev]);
+  };
+
+  const handleAddWalletBalance = (amount) => {
+    setUser(prev => ({ ...prev, walletBalance: (prev.walletBalance || 0) + amount }));
+    const newTransaction = { id: Date.now(), type: 'wallet_recharge', amount, description: 'Wallet Recharge', date: new Date().toISOString() };
+    setTransactions(prev => [newTransaction, ...prev]);
+    setIsWalletOpen(false);
+  };
+
+  const handleOpenContact = (type, companionName) => {
+    setConversations(prev => [{ id: Date.now(), companionName, type, startedAt: new Date().toISOString() }, ...prev]);
   };
 
   return (
@@ -95,6 +127,7 @@ function App() {
           onOpenProfile={() => setIsUserProfileOpen(true)}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenWallet={() => setIsWalletOpen(true)}
         />
       )}
 
@@ -116,18 +149,28 @@ function App() {
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
         companionName={activeCompanion} 
+        onScheduleDate={() => { setIsChatOpen(false); setIsDateOpen(true); }}
       />
       
       <CallModal 
         isOpen={isCallOpen} 
-        onClose={() => setIsCallOpen(false)} 
+        onClose={() => { setIsCallOpen(false); }}
         companionName={activeCompanion} 
         isFree={user?.gender === 'Female'}
+        onOpenChat={() => { setIsCallOpen(false); setIsChatOpen(true); }}
       />
       
       <RechargeModal 
         isOpen={isRechargeOpen} 
         onClose={() => setIsRechargeOpen(false)} 
+      />
+
+      {/* Wallet Top-Up Modal */}
+      <WalletModal
+        isOpen={isWalletOpen}
+        onClose={() => setIsWalletOpen(false)}
+        currentBalance={user?.walletBalance || 0}
+        onAddBalance={handleAddWalletBalance}
       />
 
       <UserProfileModal
@@ -142,6 +185,7 @@ function App() {
         onClose={() => setIsDateOpen(false)}
         companionName={activeCompanion}
         isFree={user?.gender === 'Female'}
+        onAddBooking={handleAddBooking}
       />
 
       <NotificationsModal 
@@ -153,6 +197,9 @@ function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         user={user}
+        bookings={bookings}
+        conversations={conversations}
+        transactions={transactions}
       />
       <ChatbotWidget />
     </SmoothScroll>
