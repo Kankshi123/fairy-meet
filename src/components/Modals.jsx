@@ -58,6 +58,7 @@ export function SubscriptionModal({ isOpen, onClose, onSubscribe }) {
 export function ChatModal({ isOpen, onClose, companionName }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
   if (!isOpen) return null;
 
@@ -66,9 +67,11 @@ export function ChatModal({ isOpen, onClose, companionName }) {
     if (!input.trim()) return;
     setMessages([...messages, { text: input, sender: 'user' }]);
     setInput('');
+    setIsTyping(true);
     setTimeout(() => {
       setMessages(prev => [...prev, { text: "That sounds magical! Tell me more.", sender: 'companion' }]);
-    }, 1000);
+      setIsTyping(false);
+    }, 2500);
   };
 
   return (
@@ -104,6 +107,15 @@ export function ChatModal({ isOpen, onClose, companionName }) {
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-rich-black/10 rounded-2xl rounded-bl-sm px-4 py-3.5 flex items-center gap-1.5">
+                  <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1.5 h-1.5 bg-rich-black/40 rounded-full" />
+                  <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-rich-black/40 rounded-full" />
+                  <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-rich-black/40 rounded-full" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}

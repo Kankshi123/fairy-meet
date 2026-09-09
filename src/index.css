@@ -26,9 +26,15 @@
   }
 }
 
+html.dark {
+  --color-off-white: #111111;
+  --color-rich-black: #FAFAFA;
+  --color-pure-white: #1A1A1A;
+}
+
 body {
-  background-color: var(--color-warm-ivory);
-  color: var(--color-primary-plum);
+  background-color: var(--color-off-white);
+  color: var(--color-rich-black);
   font-family: var(--font-sans);
   overflow-x: hidden;
   margin: 0;
@@ -40,10 +46,10 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-warm-ivory);
+  background: var(--color-off-white);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-dusty-rose);
+  background: var(--color-vibrant-pink);
   border-radius: 4px;
 }
 

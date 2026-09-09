@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Menu, X } from 'lucide-react';
+import { Sparkles, Menu, X, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import Magnetic from './Magnetic';
@@ -7,6 +7,15 @@ import Magnetic from './Magnetic';
 export default function Navbar({ onOpenAuth }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,6 +69,13 @@ export default function Navbar({ onOpenAuth }) {
 
           {/* Right Actions (Desktop) */}
           <div className="hidden md:flex items-center gap-6">
+            <button 
+              onClick={() => setIsDark(!isDark)}
+              className="text-rich-black/80 hover:text-vibrant-pink transition-colors p-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
             <button onClick={() => onOpenAuth('login')} className="font-sans text-sm font-medium text-rich-black hover:text-vibrant-pink transition-colors">
               Log In
             </button>
@@ -73,13 +89,22 @@ export default function Navbar({ onOpenAuth }) {
             </Magnetic>
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden relative z-[101] text-rich-black p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile Actions */}
+          <div className="md:hidden flex items-center gap-2 relative z-[101]">
+            <button 
+              onClick={() => setIsDark(!isDark)}
+              className="text-rich-black p-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button 
+              className="text-rich-black p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </nav>
       </header>
 

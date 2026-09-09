@@ -84,6 +84,14 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   
+  // Vibe Check state
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const quizQuestions = [
+    { id: 'q1', question: 'Ideal first date?', options: ['Coffee Shop', 'Cocktail Bar', 'Adventure', 'Cozy Inside'] },
+    { id: 'q2', question: 'Communication style?', options: ['Text all day', 'Voice Notes', 'Long Calls', 'In-person'] },
+    { id: 'q3', question: 'Weekend vibe?', options: ['Party time', 'Nature walks', 'Binge-watching', 'Socializing'] }
+  ];
+
   // Storing form data temporarily
   const [formData, setFormData] = useState({});
 
@@ -96,6 +104,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       setIsVerifying(false);
       setVerificationSuccess(false);
       setFormData({});
+      setQuizAnswers({});
     }
   }, [isOpen, initialMode]);
 
@@ -107,7 +116,13 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
 
   const handleSignupFormSubmit = (e) => {
     e.preventDefault();
-    setStep(3); // Move to Face Verification
+    setStep(3); // Move to Vibe Check
+  };
+
+  const handleQuizSubmit = () => {
+    if (Object.keys(quizAnswers).length === quizQuestions.length) {
+      setStep(4); // Move to Face Verification
+    }
   };
 
   const handleLoginFormSubmit = (e) => {
@@ -290,6 +305,51 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
             {mode === 'signup' && step === 3 && (
               <motion.div 
                 key="signup-step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <h3 className="font-sans text-xl font-semibold text-rich-black mb-2">Vibe Check ✨</h3>
+                <p className="font-sans text-sm text-rich-black/60 mb-6">
+                  Answer a few quick questions to help us find your perfect match.
+                </p>
+
+                <div className="space-y-6 mb-8">
+                  {quizQuestions.map((q) => (
+                    <div key={q.id}>
+                      <p className="font-sans text-sm font-medium text-rich-black mb-3">{q.question}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {q.options.map(opt => (
+                          <button
+                            key={opt}
+                            onClick={() => setQuizAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                            className={`px-4 py-2 rounded-full border text-sm font-sans transition-all ${
+                              quizAnswers[q.id] === opt 
+                                ? 'bg-vibrant-pink border-vibrant-pink text-white shadow-sm'
+                                : 'bg-white border-rich-black/20 text-rich-black/80 hover:border-vibrant-pink'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={handleQuizSubmit}
+                  disabled={Object.keys(quizAnswers).length !== quizQuestions.length}
+                  className="w-full flex items-center justify-center gap-2 bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-vibrant-pink disabled:opacity-50 disabled:hover:bg-rich-black disabled:cursor-not-allowed transition-all"
+                >
+                  Almost there <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+
+            {mode === 'signup' && step === 4 && (
+              <motion.div 
+                key="signup-step4"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center text-center"
