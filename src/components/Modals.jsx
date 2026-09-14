@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee, Bell, Settings, Shield, EyeOff, UserCircle, ChevronRight, Camera, Plus, CreditCard, CheckCircle } from 'lucide-react';
+import { openRazorpayCheckout } from '../lib/razorpayClient';
 
 const Overlay = ({ children, onClose }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -13,7 +14,25 @@ const Overlay = ({ children, onClose }) => (
   </div>
 );
 
-export function SubscriptionModal({ isOpen, onClose, onSubscribe }) {
+export function SubscriptionModal({ isOpen, onClose, onSubscribe, onOpenPolicies }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleCheckout = () => {
+    setIsProcessing(true);
+    openRazorpayCheckout({
+      amount: 199,
+      description: "1-Month Active Pass",
+      onSuccess: (res) => {
+        setIsProcessing(false);
+        if(onSubscribe) onSubscribe();
+      },
+      onFailure: (err) => {
+        setIsProcessing(false);
+        console.error("Payment failed", err);
+      }
+    });
+  };
+
   if (!isOpen) return null;
   return (
     <AnimatePresence>
@@ -44,11 +63,17 @@ export function SubscriptionModal({ isOpen, onClose, onSubscribe }) {
           </div>
           
           <button 
-            onClick={onSubscribe}
-            className="w-full flex items-center justify-center gap-2 bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-rich-black transition-all"
+            onClick={handleCheckout}
+            disabled={isProcessing}
+            className="w-full flex items-center justify-center gap-2 bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-rich-black transition-all disabled:opacity-50"
           >
-            Activate Free Pass
+            {isProcessing ? 'Processing...' : 'Activate Free Pass'}
           </button>
+          <div className="mt-4 text-center">
+            <button onClick={() => { onClose(); onOpenPolicies && onOpenPolicies('refund'); }} className="text-[11px] text-rich-black/50 hover:text-vibrant-pink underline transition-colors">
+              Refund & Cancellation Policy
+            </button>
+          </div>
         </motion.div>
       </Overlay>
     </AnimatePresence>
@@ -145,110 +170,72 @@ export function ChatModal({ isOpen, onClose, companionName, onScheduleDate }) {
   );
 }
 
-export function CallModal({ isOpen, onClose, companionName, isFree }) {
-  const [time, setTime] = useState(0);
-  const [showRechargePopup, setShowRechargePopup] = useState(false);
-
-  useEffect(() => {
-    let interval;
-    if (isOpen) {
-      interval = setInterval(() => {
-        setTime(t => {
-          if (!isFree && t + 1 === 180) { // 3 minutes
-            setShowRechargePopup(true);
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const osc = ctx.createOscillator();
-              osc.connect(ctx.destination);
-              osc.frequency.value = 800;
-              osc.start();
-              osc.stop(ctx.currentTime + 0.3);
-            } catch(e) {}
-          }
-          if (!isFree && t + 1 >= 185) {
-            onClose();
-          }
-          return t + 1;
-        });
-      }, 1000);
-    } else {
-      setTime(0);
-      setShowRechargePopup(false);
-    }
-    return () => clearInterval(interval);
-  }, [isOpen]);
-
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
+export function CallModal({ isOpen, onClose, companionName }) {
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <Overlay onClose={onClose}>
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-sm bg-rich-black rounded-[32px] shadow-hover overflow-hidden flex flex-col items-center py-12 px-6"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-sm bg-off-white rounded-[32px] shadow-hover overflow-hidden flex flex-col items-center py-12 px-8 text-center"
         >
-          <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden mb-6 border-4 border-vibrant-pink/30">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop" alt="avatar" className="w-full h-full object-cover" />
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors shadow-sm z-10">
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="relative w-24 h-24 mb-6">
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 border-2 border-dashed border-vibrant-pink/40 rounded-full"
+            />
+            <div className="absolute inset-2 bg-vibrant-pink/10 rounded-full flex items-center justify-center">
+              <Sparkles className="w-10 h-10 text-vibrant-pink" />
+            </div>
           </div>
           
-          <h2 className="font-sans text-2xl font-medium text-pure-white mb-2">{companionName || 'Companion'}</h2>
-          <p className="font-sans text-vibrant-pink tracking-widest">{formatTime(time)}</p>
-          
-          {/* Audio wave animation simulation */}
-          <div className="flex gap-1.5 h-8 items-center mt-8 mb-12">
-            {[...Array(5)].map((_, i) => (
-              <motion.div 
-                key={i}
-                animate={{ height: ['20%', '100%', '20%'] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
-                className="w-1 bg-vibrant-pink rounded-full"
-              />
-            ))}
+          <h2 className="font-serif text-3xl font-medium text-rich-black mb-3">Cosmic Calling</h2>
+          <div className="bg-vibrant-pink text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4 shadow-sm">
+            Coming Soon
           </div>
+          
+          <p className="font-sans text-sm text-rich-black/70 mb-8 leading-relaxed">
+            We're currently brewing a magical voice experience to let you hear {companionName || 'them'} in crystal clear, high-definition audio. Telepathic connections take a little time to perfect!
+          </p>
 
           <button 
             onClick={onClose}
-            className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors shadow-hover z-10"
+            className="w-full bg-rich-black text-pure-white font-sans font-medium py-3.5 rounded-xl hover:bg-vibrant-pink transition-colors shadow-hover"
           >
-            <Phone className="w-6 h-6 rotate-[135deg]" />
+            I'll wait patiently
           </button>
-
-          {/* Recharge Popup */}
-          <AnimatePresence>
-            {showRechargePopup && (
-              <motion.div 
-                initial={{ opacity: 0, y: 50 }} 
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 50 }}
-                className="absolute inset-x-4 bottom-28 bg-white rounded-2xl p-5 shadow-hover flex flex-col items-center text-center border border-vibrant-pink z-20"
-              >
-                <Wallet className="w-8 h-8 text-vibrant-pink mb-2" />
-                <h3 className="font-sans font-bold text-rich-black text-lg mb-1">Free Call Ended</h3>
-                <p className="font-sans text-sm text-rich-black/70 mb-4">
-                  Please recharge to continue. Calls are ₹5/min for all genders.
-                </p>
-                <button 
-                  onClick={() => setShowRechargePopup(false)}
-                  className="bg-vibrant-pink text-white px-6 py-2.5 rounded-pill font-medium text-sm w-full hover:bg-vibrant-pink/90 transition-colors"
-                >
-                  Recharge Now
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       </Overlay>
     </AnimatePresence>
   );
 }
 
-export function RechargeModal({ isOpen, onClose }) {
+export function RechargeModal({ isOpen, onClose, onOpenPolicies }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedAmt, setSelectedAmt] = useState(100);
+
+  const handleCheckout = () => {
+    setIsProcessing(true);
+    openRazorpayCheckout({
+      amount: selectedAmt,
+      description: "Wallet Recharge",
+      onSuccess: (res) => {
+        setIsProcessing(false);
+        onClose();
+        alert('Recharge successful!');
+      },
+      onFailure: (err) => {
+        setIsProcessing(false);
+      }
+    });
+  };
+
   if (!isOpen) return null;
   return (
     <AnimatePresence>
@@ -272,15 +259,28 @@ export function RechargeModal({ isOpen, onClose }) {
 
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[100, 250, 500, 1000].map(amt => (
-              <button key={amt} className="py-3 border border-rich-black/20 rounded-xl font-sans text-rich-black hover:border-vibrant-pink hover:bg-off-white transition-colors">
+              <button 
+                key={amt} 
+                onClick={() => setSelectedAmt(amt)}
+                className={`py-3 border rounded-xl font-sans text-rich-black transition-colors ${selectedAmt === amt ? 'border-vibrant-pink bg-vibrant-pink/5 font-semibold' : 'border-rich-black/20 hover:border-vibrant-pink hover:bg-off-white'}`}
+              >
                 ₹{amt}
               </button>
             ))}
           </div>
 
-          <button className="w-full bg-rich-black text-pure-white font-sans py-3.5 rounded-pill hover:bg-rich-black transition-colors">
-            Proceed to Pay
+          <button 
+            onClick={handleCheckout}
+            disabled={isProcessing}
+            className="w-full bg-rich-black text-pure-white font-sans py-3.5 rounded-pill hover:bg-rich-black transition-colors disabled:opacity-50"
+          >
+            {isProcessing ? 'Processing...' : `Pay ₹${selectedAmt}`}
           </button>
+          <div className="mt-4 text-center">
+            <button onClick={() => { onClose(); onOpenPolicies && onOpenPolicies('refund'); }} className="text-[11px] text-rich-black/50 hover:text-vibrant-pink underline transition-colors">
+              Refund & Cancellation Policy
+            </button>
+          </div>
         </motion.div>
       </Overlay>
     </AnimatePresence>
@@ -903,14 +903,15 @@ export function SettingsModal({ isOpen, onClose, user, bookings = [], conversati
   );
 }
 
-export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance }) {
+export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance, onOpenPolicies }) {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount, setCustomAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const presets = [99, 199, 499, 999];
 
   useEffect(() => {
-    if (!isOpen) { setSelectedAmount(null); setCustomAmount(''); setIsSuccess(false); }
+    if (!isOpen) { setSelectedAmount(null); setCustomAmount(''); setIsSuccess(false); setIsProcessing(false); }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -918,19 +919,32 @@ export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance }) {
 
   const handlePay = () => {
     if (!finalAmount || finalAmount < 1) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start(); osc.stop(ctx.currentTime + 0.4);
-    } catch(e) {}
-    setIsSuccess(true);
-    setTimeout(() => onAddBalance(finalAmount), 1000);
+    setIsProcessing(true);
+
+    openRazorpayCheckout({
+      amount: finalAmount,
+      description: "Wallet Top-up",
+      onSuccess: (res) => {
+        setIsProcessing(false);
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          osc.start(); osc.stop(ctx.currentTime + 0.4);
+        } catch(e) {}
+        setIsSuccess(true);
+        setTimeout(() => onAddBalance(finalAmount), 1000);
+      },
+      onFailure: (err) => {
+        setIsProcessing(false);
+        console.error("Payment failed", err);
+      }
+    });
   };
 
   return (
@@ -978,10 +992,15 @@ export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance }) {
                   placeholder="Enter custom amount"
                   className="w-full border border-rich-black/10 rounded-xl px-4 py-3 font-sans text-sm text-rich-black outline-none focus:border-vibrant-pink transition-all mb-5"
                 />
-                <button onClick={handlePay} disabled={!finalAmount || finalAmount < 1}
+                <button onClick={handlePay} disabled={!finalAmount || finalAmount < 1 || isProcessing}
                   className="w-full bg-rich-black text-white font-sans font-semibold py-4 rounded-xl hover:bg-vibrant-pink disabled:opacity-40 disabled:hover:bg-rich-black transition-colors">
-                  Pay ₹{finalAmount || '0'} via UPI / Card
+                  {isProcessing ? 'Processing...' : `Pay ₹${finalAmount || '0'} via UPI / Card`}
                 </button>
+                <div className="mt-4 text-center">
+                  <button onClick={() => { onClose(); onOpenPolicies && onOpenPolicies('refund'); }} className="text-[11px] text-rich-black/50 hover:text-vibrant-pink underline transition-colors">
+                    Refund & Cancellation Policy
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

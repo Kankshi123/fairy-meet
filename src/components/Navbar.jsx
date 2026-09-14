@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import Magnetic from './Magnetic';
 
-export default function Navbar({ onOpenAuth }) {
+export default function Navbar({ onOpenAuth, onFindMatch, user, onGoToDashboard }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -60,17 +60,15 @@ export default function Navbar({ onOpenAuth }) {
 
           {/* Right Actions (Desktop) */}
           <div className="hidden md:flex items-center gap-6">
-            <button onClick={() => onOpenAuth('login')} className="font-sans text-sm font-medium text-rich-black hover:text-vibrant-pink transition-colors">
-              Log In
-            </button>
-            <Magnetic>
-              <button 
-                onClick={() => onOpenAuth('signup')}
-                className="bg-rich-black text-pure-white font-sans text-sm font-medium px-6 py-2.5 rounded-pill hover:bg-vibrant-pink transition-all hover:shadow-hover hover:-translate-y-0.5 active:translate-y-0 group"
-              >
-                <span className="inline-block transition-transform group-hover:scale-105">Find Your Match</span>
+            {user ? (
+              <button onClick={onGoToDashboard} className="font-sans text-sm font-medium text-rich-black hover:text-vibrant-pink transition-colors">
+                Go to Dashboard
               </button>
-            </Magnetic>
+            ) : (
+              <button onClick={() => onOpenAuth('login')} className="font-sans text-sm font-medium text-rich-black hover:text-vibrant-pink transition-colors">
+                Log In
+              </button>
+            )}
           </div>
 
           {/* Mobile Actions */}
@@ -108,18 +106,21 @@ export default function Navbar({ onOpenAuth }) {
             </div>
             
             <div className="mt-auto mb-12 flex flex-col gap-4">
-              <button 
-                onClick={() => { setMobileMenuOpen(false); onOpenAuth('login'); }} 
-                className="w-full py-4 font-sans text-lg font-medium border border-rich-black/20 rounded-pill text-rich-black"
-              >
-                Log In
-              </button>
-              <button 
-                onClick={() => { setMobileMenuOpen(false); onOpenAuth('signup'); }}
-                className="w-full py-4 font-sans text-lg font-medium bg-rich-black text-pure-white rounded-pill"
-              >
-                Find Your Match
-              </button>
+              {user ? (
+                <button 
+                  onClick={() => { setMobileMenuOpen(false); onGoToDashboard(); }} 
+                  className="w-full py-4 font-sans text-lg font-medium border border-rich-black/20 rounded-pill text-rich-black"
+                >
+                  Go to Dashboard
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { setMobileMenuOpen(false); onOpenAuth('login'); }} 
+                  className="w-full py-4 font-sans text-lg font-medium border border-rich-black/20 rounded-pill text-rich-black"
+                >
+                  Log In
+                </button>
+              )}
             </div>
           </motion.div>
         )}

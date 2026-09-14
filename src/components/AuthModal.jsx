@@ -74,7 +74,7 @@ const WebcamCapture = ({ onCapture }) => {
   );
 };
 
-export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'signup' }) {
+export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'signup', onOpenPolicies }) {
   const [mode, setMode] = useState('signup'); // 'login' or 'signup'
   const [step, setStep] = useState(1);
   const [gender, setGender] = useState('');
@@ -95,6 +95,10 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
   // Storing form data temporarily
   const [formData, setFormData] = useState({});
 
+  // Terms & Conditions state
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsError, setShowTermsError] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode || 'signup');
@@ -105,6 +109,8 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       setVerificationSuccess(false);
       setFormData({});
       setQuizAnswers({});
+      setTermsAccepted(false);
+      setShowTermsError(false);
     }
   }, [isOpen, initialMode]);
 
@@ -116,6 +122,11 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
 
   const handleSignupFormSubmit = (e) => {
     e.preventDefault();
+    if (!termsAccepted) {
+      setShowTermsError(true);
+      return;
+    }
+    setShowTermsError(false);
     const form = e.target;
     setFormData({
       ...formData,
@@ -305,7 +316,41 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"
                     />
                   </div>
-                  <div className="pt-4">
+                  <div className="pt-2">
+                    <label className="flex items-start gap-3 mb-4 cursor-pointer group select-none">
+                      <div className="relative flex items-center justify-center mt-0.5">
+                        <input 
+                          type="checkbox" 
+                          checked={termsAccepted}
+                          onChange={(e) => {
+                            setTermsAccepted(e.target.checked);
+                            if (e.target.checked) setShowTermsError(false);
+                          }}
+                          className="w-5 h-5 appearance-none border-2 border-rich-black/20 rounded-md checked:bg-vibrant-pink checked:border-vibrant-pink transition-colors cursor-pointer"
+                        />
+                        {termsAccepted && (
+                          <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[11px] leading-relaxed text-rich-black/70 font-sans">
+                        I agree to the{' '}
+                        <button type="button" onClick={(e) => { e.preventDefault(); onClose(); onOpenPolicies && onOpenPolicies('terms'); }} className="underline hover:text-vibrant-pink font-medium">Terms & Conditions</button>,{' '}
+                        <button type="button" onClick={(e) => { e.preventDefault(); onClose(); onOpenPolicies && onOpenPolicies('privacy'); }} className="underline hover:text-vibrant-pink font-medium">Privacy Policy</button> and{' '}
+                        <button type="button" onClick={(e) => { e.preventDefault(); onClose(); onOpenPolicies && onOpenPolicies('safety'); }} className="underline hover:text-vibrant-pink font-medium">18+ Safety Policy</button>.
+                      </span>
+                    </label>
+                    
+                    {showTermsError && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-red-500 font-medium mb-4 text-center bg-red-50 py-2.5 rounded-lg border border-red-100"
+                      >
+                        Please accept the terms and conditions to continue.
+                      </motion.p>
+                    )}
+
                     <button 
                       type="submit"
                       className="w-full flex items-center justify-center gap-2 bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-vibrant-pink hover:-translate-y-0.5 transition-all"

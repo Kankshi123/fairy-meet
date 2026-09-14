@@ -1,98 +1,40 @@
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Phone, Search, Bell, Settings, LogOut, LayoutGrid, Layers, X as XIcon, Calendar } from 'lucide-react';
+import { Heart, MessageCircle, Phone, Search, Bell, Settings, LogOut, LayoutGrid, Layers, X as XIcon, Calendar, ChevronLeft } from 'lucide-react';
 
-const ProfilePopup = ({ comp, onClose, onAction, user }) => {
-  if (!comp) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-rich-black/40 backdrop-blur-sm"
-      />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-[32px] shadow-hover overflow-hidden flex flex-col z-10"
-      >
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-md text-rich-black hover:bg-vibrant-pink hover:text-white transition-colors">
-          <XIcon className="w-4 h-4" />
-        </button>
-        <div className="relative w-full h-[350px]">
-          <img src={comp.image} alt={comp.name} className="w-full h-full object-cover" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-rich-black/80 to-transparent">
-            <h2 className="font-serif text-4xl text-white font-medium">{comp.name}, <span className="opacity-80 text-2xl">{comp.age}</span></h2>
-            <div className="flex items-center gap-1.5 mt-2">
-              <div className={`w-2 h-2 rounded-full ${comp.status === 'Online' ? 'bg-green-500' : comp.status === 'Busy' ? 'bg-yellow-500' : 'bg-gray-400'}`}></div>
-              <span className="text-xs font-bold uppercase tracking-wider text-white">{comp.status}</span>
-            </div>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="flex flex-wrap gap-2 mb-8">
-            {comp.tags.map(tag => (
-              <span key={tag} className="text-sm font-medium text-rich-black/70 bg-off-white px-3 py-1.5 rounded-md">{tag}</span>
-            ))}
-          </div>
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <button onClick={() => { onClose(); onAction('chat', comp.name); }} className="flex-1 flex items-center justify-center gap-2 bg-off-white text-rich-black py-3 rounded-xl hover:bg-vibrant-pink hover:text-white transition-colors">
-                <MessageCircle className="w-5 h-5" />
-                <span className="font-medium">Chat</span>
-              </button>
-              <button onClick={() => { onClose(); onAction('call', comp.name); }} className="flex-1 flex items-center justify-center gap-2 bg-rich-black text-pure-white py-3 rounded-xl hover:bg-rich-black transition-colors">
-                <Phone className="w-5 h-5" />
-                <span className="font-medium">Call</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
+import ProfilePopup from './ProfilePopup';
 
-const companions = [
-  {
-    id: 1,
-    name: "Maya",
-    gender: "Female",
-    age: 27,
-    status: "Online",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80",
-    tags: ["Creative", "Travel"],
-    rate: "₹5/min"
-  },
-  {
-    id: 2,
-    name: "Arjun",
-    gender: "Male",
-    age: 29,
-    status: "Busy",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80",
-    tags: ["Music", "Outdoors"],
-    rate: "₹5/min"
-  },
-  {
-    id: 3,
-    name: "Sarah",
-    gender: "Female",
-    age: 26,
-    status: "Online",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
-    tags: ["Art", "Reading"],
-    rate: "₹5/min"
-  },
-  {
-    id: 4,
-    name: "Rohan",
-    gender: "Male",
-    age: 31,
-    status: "Offline",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80",
-    tags: ["Fitness", "Tech"],
-    rate: "₹5/min"
-  }
+export const companions = [
+  { id: 1, name: "Maya", gender: "Female", age: 27, status: "Online", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80", tags: ["Creative", "Travel"], rate: "₹5/min" },
+  { id: 2, name: "Arjun", gender: "Male", age: 29, status: "Busy", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80", tags: ["Music", "Outdoors"], rate: "₹5/min" },
+  { id: 3, name: "Sarah", gender: "Female", age: 26, status: "Online", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80", tags: ["Art", "Reading"], rate: "₹5/min" },
+  { id: 4, name: "Rohan", gender: "Male", age: 31, status: "Offline", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80", tags: ["Fitness", "Tech"], rate: "₹5/min" },
+  { id: 5, name: "Priya", gender: "Female", age: 25, status: "Online", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80", tags: ["Photography", "Cafe"], rate: "₹5/min" },
+  { id: 6, name: "Vikram", gender: "Male", age: 28, status: "Online", image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&auto=format&fit=crop&q=80", tags: ["Cooking", "Sports"], rate: "₹5/min" },
+  { id: 7, name: "Aisha", gender: "Female", age: 24, status: "Busy", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80", tags: ["Fashion", "Movies"], rate: "₹5/min" },
+  { id: 8, name: "Kabir", gender: "Male", age: 30, status: "Offline", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80", tags: ["Business", "Travel"], rate: "₹5/min" },
+  { id: 9, name: "Neha", gender: "Female", age: 28, status: "Online", image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&auto=format&fit=crop&q=80", tags: ["Yoga", "Nature"], rate: "₹5/min" },
+  { id: 10, name: "Aditya", gender: "Male", age: 27, status: "Online", image: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80", tags: ["Gaming", "Coding"], rate: "₹5/min" },
+  { id: 11, name: "Kriti", gender: "Female", age: 23, status: "Busy", image: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&auto=format&fit=crop&q=80", tags: ["Dance", "Music"], rate: "₹5/min" },
+  { id: 12, name: "Karan", gender: "Male", age: 29, status: "Offline", image: "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=600&auto=format&fit=crop&q=80", tags: ["Fitness", "Foodie"], rate: "₹5/min" },
+  { id: 13, name: "Ananya", gender: "Female", age: 26, status: "Online", image: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=600&auto=format&fit=crop&q=80", tags: ["Baking", "Pets"], rate: "₹5/min" },
+  { id: 14, name: "Siddharth", gender: "Male", age: 32, status: "Online", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80", tags: ["Books", "Writing"], rate: "₹5/min" },
+  { id: 15, name: "Meera", gender: "Female", age: 29, status: "Online", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80", tags: ["Art", "History"], rate: "₹5/min" },
+  { id: 16, name: "Rahul", gender: "Male", age: 26, status: "Busy", image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80", tags: ["Photography", "Travel"], rate: "₹5/min" },
+  { id: 17, name: "Simran", gender: "Female", age: 25, status: "Online", image: "https://images.unsplash.com/photo-1517365830460-955ce3ccd263?w=600&auto=format&fit=crop&q=80", tags: ["Music", "Concerts"], rate: "₹5/min" },
+  { id: 18, name: "Dev", gender: "Male", age: 28, status: "Online", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80", tags: ["Movies", "Tech"], rate: "₹5/min" },
+  { id: 19, name: "Tanya", gender: "Female", age: 26, status: "Online", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80", tags: ["Design", "Art"], rate: "₹5/min" },
+  { id: 20, name: "Aryan", gender: "Male", age: 29, status: "Busy", image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&auto=format&fit=crop&q=80", tags: ["Sports", "Gaming"], rate: "₹5/min" },
+  { id: 21, name: "Ishita", gender: "Female", age: 24, status: "Online", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80", tags: ["Reading", "Coffee"], rate: "₹5/min" },
+  { id: 22, name: "Kunal", gender: "Male", age: 31, status: "Offline", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80", tags: ["Travel", "Finance"], rate: "₹5/min" },
+  { id: 23, name: "Pooja", gender: "Female", age: 27, status: "Online", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80", tags: ["Yoga", "Cooking"], rate: "₹5/min" },
+  { id: 24, name: "Varun", gender: "Male", age: 28, status: "Online", image: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80", tags: ["Music", "Movies"], rate: "₹5/min" },
+  { id: 25, name: "Riya", gender: "Female", age: 25, status: "Busy", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80", tags: ["Fashion", "Dance"], rate: "₹5/min" },
+  { id: 26, name: "Akash", gender: "Male", age: 27, status: "Online", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80", tags: ["Fitness", "Tech"], rate: "₹5/min" },
+  { id: 27, name: "Shruti", gender: "Female", age: 28, status: "Online", image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&auto=format&fit=crop&q=80", tags: ["Nature", "Pets"], rate: "₹5/min" },
+  { id: 28, name: "Nikhil", gender: "Male", age: 30, status: "Busy", image: "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=600&auto=format&fit=crop&q=80", tags: ["Foodie", "Travel"], rate: "₹5/min" },
+  { id: 29, name: "Sneha", gender: "Female", age: 26, status: "Online", image: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=600&auto=format&fit=crop&q=80", tags: ["Art", "Reading"], rate: "₹5/min" },
+  { id: 30, name: "Yash", gender: "Male", age: 29, status: "Online", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80", tags: ["Photography", "Music"], rate: "₹5/min" }
 ];
 
 const SwipeCard = ({ comp, onSwipe, isTop, onViewProfile }) => {
@@ -163,7 +105,7 @@ const SwipeCard = ({ comp, onSwipe, isTop, onViewProfile }) => {
   );
 };
 
-export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile, onOpenNotifications, onOpenSettings, onOpenWallet }) {
+export default function SeekerDashboard({ onInitiateContact, user, onLogout, onUpdateUser, onOpenProfile, onOpenNotifications, onOpenSettings, onOpenWallet, onFindMatch, onGoToLanding }) {
   const [viewMode, setViewMode] = useState('swipe'); // 'grid' or 'swipe'
   const [selectedComp, setSelectedComp] = useState(null);
   
@@ -192,9 +134,18 @@ export default function SeekerDashboard({ onInitiateContact, user, onLogout, onU
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-rich-black/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-serif text-2xl font-bold tracking-tight text-rich-black">FAIRY MEET</span>
+            <button onClick={onGoToLanding} className="group flex items-center gap-1.5 font-serif text-2xl font-bold tracking-tight text-rich-black hover:text-vibrant-pink transition-colors">
+              <ChevronLeft className="w-6 h-6 text-rich-black/50 group-hover:text-vibrant-pink group-hover:-translate-x-1 transition-all" />
+              FAIRY MEET
+            </button>
           </div>
           <div className="flex items-center gap-3 sm:gap-6">
+            <button 
+              onClick={onFindMatch}
+              className="hidden md:flex bg-vibrant-pink text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-vibrant-pink/90 transition-colors shadow-sm"
+            >
+              Find Your Match
+            </button>
             <button onClick={onOpenWallet} className="flex items-center gap-1 sm:gap-2 bg-off-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full hover:bg-vibrant-pink/10 hover:ring-1 hover:ring-vibrant-pink/30 transition-all">
               <span className="hidden sm:inline text-xs uppercase tracking-widest font-semibold text-rich-black/60">Wallet</span>
               <span className="font-medium text-rich-black text-sm sm:text-base">₹{user.walletBalance}</span>

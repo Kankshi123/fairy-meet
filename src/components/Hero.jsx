@@ -4,7 +4,7 @@ import { Heart, Sparkles } from 'lucide-react';
 import FairyDust from './FairyDust';
 import Magnetic from './Magnetic';
 
-export default function Hero({ onOpenAuth }) {
+export default function Hero({ onOpenAuth, onFindMatch }) {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -79,7 +79,7 @@ export default function Hero({ onOpenAuth }) {
             className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
           >
             <Magnetic>
-              <button onClick={() => onOpenAuth('signup')} className="w-full sm:w-auto bg-rich-black text-pure-white font-sans text-xl sm:text-lg font-semibold px-10 py-6 sm:py-5 rounded-pill hover:bg-vibrant-pink transition-all hover:shadow-hover hover:-translate-y-1 text-center group">
+              <button onClick={onFindMatch} className="w-full sm:w-auto bg-rich-black text-pure-white font-sans text-xl sm:text-lg font-semibold px-10 py-6 sm:py-5 rounded-pill hover:bg-vibrant-pink transition-all hover:shadow-hover hover:-translate-y-1 text-center group">
                 <span className="inline-block transition-transform group-hover:scale-105">Find Your Match</span>
               </button>
             </Magnetic>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Footer() {
+export default function Footer({ onOpenPolicies }) {
   return (
     <footer className="bg-off-white text-rich-black pt-24 pb-12 border-t border-vibrant-pink/20">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
@@ -28,9 +28,13 @@ export default function Footer() {
           <div>
             <h4 className="font-sans text-sm tracking-[0.15em] uppercase font-semibold mb-6">Legal</h4>
             <ul className="space-y-4 font-sans text-sm text-rich-black/70">
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">Privacy</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">Terms</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">Community Guidelines</a></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('privacy'); }} className="hover:text-vibrant-pink transition-colors text-left">Privacy Policy</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('terms'); }} className="hover:text-vibrant-pink transition-colors text-left">Terms & Conditions</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('community'); }} className="hover:text-vibrant-pink transition-colors text-left">Community Guidelines</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('safety'); }} className="hover:text-vibrant-pink transition-colors text-left">18+ & User Safety</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('referral'); }} className="hover:text-vibrant-pink transition-colors text-left">Referral Terms</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('refund'); }} className="hover:text-vibrant-pink transition-colors text-left">Refund Policy</button></li>
+              <li><button onClick={(e) => { e.preventDefault(); onOpenPolicies && onOpenPolicies('grievance'); }} className="hover:text-vibrant-pink transition-colors text-left">Grievance & Support</button></li>
             </ul>
           </div>
           

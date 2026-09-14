@@ -11,12 +11,12 @@ import SafetySection from './components/SafetySection';
 import FinalCTA from './components/FinalCTA';
 import Footer from './components/Footer';
 
-const LandingPage = ({ onOpenAuth }) => {
+const LandingPage = ({ onOpenAuth, onFindMatch, user, onGoToDashboard, onOpenPolicies }) => {
   return (
     <div id="app-root" className="bg-off-white text-rich-black overflow-x-hidden min-h-screen flex flex-col w-full relative">
-      <Navbar onOpenAuth={onOpenAuth} />
+      <Navbar onOpenAuth={onOpenAuth} onFindMatch={onFindMatch} user={user} onGoToDashboard={onGoToDashboard} />
       <main className="flex-grow">
-        <Hero onOpenAuth={onOpenAuth} />
+        <Hero onOpenAuth={onOpenAuth} onFindMatch={onFindMatch} />
         <Marquee />
         <WhyFairyMeet />
         <DiscoverSection onOpenAuth={onOpenAuth} />
@@ -26,7 +26,7 @@ const LandingPage = ({ onOpenAuth }) => {
         <SafetySection />
         <FinalCTA onOpenAuth={onOpenAuth} />
       </main>
-      <Footer />
+      <Footer onOpenPolicies={onOpenPolicies} />
     </div>
   );
 };
