@@ -11,6 +11,7 @@ import { useAppContext } from '../context/AppContext';
 import VenuesList from './VenuesList';
 import ReferAndEarn from './ReferAndEarn';
 import MyProfilePhotoModal from './MyProfilePhotoModal';
+import ChatSubscriptionModal from './ChatSubscriptionModal';
 
 const TABS = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,12 +27,23 @@ const TABS = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwitchMode, onSettings, onOpenWallet, onGoToLanding }) {
-  const { companionProfile, updateProfile } = useAppContext();
+export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwitchMode, onOpenWallet, onGoToLanding }) {
+  const { companionProfile, updateProfile, checkSubscription } = useAppContext();
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isOnline = companionProfile.isOnline;
   const setIsOnline = (status) => updateProfile({ isOnline: status });
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  const isSubscribed = checkSubscription(user, 'companion');
+
+  const handleActionWithPaywall = (actionFn) => {
+    if (!isSubscribed) {
+      setShowPaywall(true);
+    } else {
+      actionFn();
+    }
+  };
 
   // For requests tab
   const [requestFilter, setRequestFilter] = useState('Pending');
@@ -46,13 +58,13 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
       case 'availability':
         return <AvailabilityTab isOnline={isOnline} setIsOnline={setIsOnline} companionProfile={companionProfile} updateProfile={updateProfile} />;
       case 'requests':
-        return <RequestsTab filter={requestFilter} setFilter={setRequestFilter} />;
+        return <RequestsTab filter={requestFilter} setFilter={setRequestFilter} handleActionWithPaywall={handleActionWithPaywall} />;
       case 'venues':
         return <VenuesList />;
       case 'connections':
-        return <ConnectionsTab />;
+        return <ConnectionsTab handleActionWithPaywall={handleActionWithPaywall} />;
       case 'messages':
-        return <MessagesTab />;
+        return <MessagesTab handleActionWithPaywall={handleActionWithPaywall} />;
       case 'meetups':
         return <MeetupsTab setActiveTab={setActiveTab} />;
       case 'reviews':
@@ -241,6 +253,16 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
 
       <AnimatePresence>
         {showMyProfilePhoto && <MyProfilePhotoModal user={user} onClose={() => setShowMyProfilePhoto(false)} />}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {showPaywall && (
+          <ChatSubscriptionModal
+            isOpen={showPaywall}
+            onClose={() => setShowPaywall(false)}
+            onSubscribed={() => setShowPaywall(false)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -665,7 +687,7 @@ function RequestsTab({ filter, setFilter }) {
                 </div>
                 {filter === 'Pending' && (
                   <div className="flex gap-2 mt-4 sm:mt-0 pt-2">
-                    <button onClick={() => acceptRequest(req.id)} className="flex-1 py-2 bg-rich-black text-white text-sm font-semibold rounded-xl hover:bg-rich-black/80 transition-colors">Accept</button>
+                    <button onClick={() => handleActionWithPaywall(() => acceptRequest(req.id))} className="flex-1 py-2 bg-rich-black text-white text-sm font-semibold rounded-xl hover:bg-rich-black/80 transition-colors">Accept</button>
                     <button onClick={() => declineRequest(req.id)} className="flex-1 py-2 bg-off-white text-rich-black text-sm font-semibold rounded-xl hover:bg-rich-black/5 transition-colors">Decline</button>
                   </div>
                 )}

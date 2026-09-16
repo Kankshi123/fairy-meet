@@ -112,8 +112,8 @@ export default function ChatSubscriptionModal({ isOpen, onClose, onSubscribed })
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="font-serif text-2xl text-rich-black">Chat Unlocked!</h3>
-              <p className="font-sans text-sm text-rich-black/60">You can now chat with all your connections.</p>
+              <h3 className="font-serif text-2xl text-rich-black">Access Unlocked!</h3>
+              <p className="font-sans text-sm text-rich-black/60">You can now view profiles and chat with connections.</p>
             </motion.div>
           ) : (
             <motion.div key="plans" className="p-6 space-y-5">
@@ -122,9 +122,9 @@ export default function ChatSubscriptionModal({ isOpen, onClose, onSubscribed })
                 <div className="w-14 h-14 bg-vibrant-pink/10 rounded-full flex items-center justify-center mb-4">
                   <Lock className="w-7 h-7 text-vibrant-pink" />
                 </div>
-                <h2 className="font-serif text-2xl text-rich-black mb-2">Unlock Connections</h2>
+                <h2 className="font-serif text-2xl text-rich-black mb-2">Unlock Premium Access</h2>
                 <p className="font-sans text-sm text-rich-black/60 max-w-xs">
-                  Choose a chat pass to start chatting with your matched Companions.
+                  Choose a subscription pass to unlock profiles, accept requests, and start chatting.
                 </p>
               </div>
 

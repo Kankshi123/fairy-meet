@@ -22,23 +22,11 @@ export default function ProfilePopup({ comp, onClose, onAction, user }) {
 
   if (!comp) return null;
 
-  const isFemale = user?.gender === 'Female';
   const isUnlocked = unlockedConnections.includes(comp.id) || paymentSuccess;
 
   const handleBookClick = () => {
     if (!selectedService) return;
-    if (isFemale) {
-      // Free for females — instant unlock
-      setIsProcessing(true);
-      setTimeout(() => {
-        bookService(comp.id);
-        setPaymentSuccess(true);
-        setIsProcessing(false);
-      }, 900);
-    } else {
-      // Show payment modal for males / LGBTQ+
-      setShowPayment(true);
-    }
+    setShowPayment(true);
   };
 
   const handleConfirmPayment = () => {
@@ -114,9 +102,6 @@ export default function ProfilePopup({ comp, onClose, onAction, user }) {
                   <p className="font-sans text-sm text-rich-black/60">
                     Select a service to book with {comp.name} to unlock chat &amp; calls.
                   </p>
-                  {isFemale && (
-                    <p className="font-sans text-sm font-semibold text-vibrant-pink mt-1">✨ Completely free for female users!</p>
-                  )}
                 </div>
 
                 {/* Service Cards Grid */}
@@ -141,7 +126,7 @@ export default function ProfilePopup({ comp, onClose, onAction, user }) {
                         <div>
                           <p className={`font-sans text-xs font-semibold leading-tight ${isSelected ? 'text-vibrant-pink' : 'text-rich-black'}`}>{svc.title}</p>
                           <p className="font-sans text-[11px] text-rich-black/50 mt-0.5">
-                            {isFemale ? <span className="text-green-600 font-bold">FREE</span> : `₹${svc.price}`}
+                            ₹{svc.price}
                           </p>
                         </div>
                       </button>
@@ -161,7 +146,7 @@ export default function ProfilePopup({ comp, onClose, onAction, user }) {
                       Book &amp; Unlock
                       {selectedService && (
                         <span className="ml-1 opacity-80">
-                          ({isFemale ? 'FREE' : `₹${selectedService.price}`})
+                          (₹{selectedService.price})
                         </span>
                       )}
                     </>

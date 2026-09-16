@@ -113,20 +113,27 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
   const [showChatPaywall, setShowChatPaywall] = useState(false);
   const [showChatPopup, setShowChatPopup] = useState(false);
   const [showMyProfilePhoto, setShowMyProfilePhoto] = useState(false);
+  const [pendingActionFn, setPendingActionFn] = useState(null);
 
-  const { chatSubscription } = useAppContext();
-  const isFemale = user?.gender === 'Female';
-  const isChatSubscribed = isFemale || (chatSubscription && new Date(chatSubscription.expiresAt) > new Date());
+  const { checkSubscription } = useAppContext();
+  const isSubscribed = checkSubscription(user, 'seeker');
+
+  const handleActionWithPaywall = (actionFn, comp = null) => {
+    if (!isSubscribed) {
+      if (comp) setChatComp(comp);
+      setPendingActionFn(() => actionFn);
+      setShowChatPaywall(true);
+    } else {
+      actionFn();
+    }
+  };
 
   const handleNavigateToMessages = (comp = null) => {
     if (comp) {
-      if (!isChatSubscribed) {
-        setChatComp(comp);
-        setShowChatPaywall(true);
-      } else {
+      handleActionWithPaywall(() => {
         setChatComp(comp);
         setShowChatPopup(true);
-      }
+      }, comp);
     } else {
       setActiveTab('messages');
     }
@@ -134,8 +141,8 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview': return <OverviewTab user={user} setActiveTab={setActiveTab} />;
-      case 'discover': return <DiscoverTab user={user} setActiveTab={setActiveTab} setChatComp={setChatComp} onNavigateToMessages={handleNavigateToMessages} onInitiateContact={onInitiateContact} onFindMatch={onFindMatch} />;
+      case 'overview': return <OverviewTab user={user} setActiveTab={setActiveTab} handleActionWithPaywall={handleActionWithPaywall} />;
+      case 'discover': return <DiscoverTab user={user} setActiveTab={setActiveTab} setChatComp={setChatComp} onNavigateToMessages={handleNavigateToMessages} onInitiateContact={onInitiateContact} onFindMatch={onFindMatch} handleActionWithPaywall={handleActionWithPaywall} />;
       case 'favorites': return <FavoritesTab setActiveTab={setActiveTab} />;
       case 'requests': return <RequestsTab />;
       case 'connections': return <ConnectionsTab setActiveTab={setActiveTab} />;
@@ -280,7 +287,10 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
             onClose={() => setShowChatPaywall(false)}
             onSubscribed={() => {
               setShowChatPaywall(false);
-              setShowChatPopup(true);
+              if (pendingActionFn) {
+                pendingActionFn();
+                setPendingActionFn(null);
+              }
             }}
           />
         )}
@@ -311,7 +321,7 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
 // TAB COMPONENTS
 // ==========================================
 
-function OverviewTab({ user, setActiveTab }) {
+function OverviewTab({ user, setActiveTab, handleActionWithPaywall }) {
   return (
     <div className="animate-in fade-in space-y-8">
       <div className="flex items-center gap-2 mb-2">
@@ -348,7 +358,7 @@ function OverviewTab({ user, setActiveTab }) {
                <div className="p-4 text-center">
                  <h4 className="font-bold">{comp.name}</h4>
                  <p className="text-sm text-rich-black/60">{comp.age} &bull; 4.8★</p>
-                 <button onClick={() => setActiveTab('discover')} className="w-full mt-3 py-2 text-xs font-semibold uppercase tracking-wider bg-off-white text-rich-black rounded-full hover:bg-vibrant-pink hover:text-white transition-colors">View Profile</button>
+                 <button onClick={() => handleActionWithPaywall(() => setActiveTab('discover'))} className="w-full mt-3 py-2 text-xs font-semibold uppercase tracking-wider bg-off-white text-rich-black rounded-full hover:bg-vibrant-pink hover:text-white transition-colors">View Profile</button>
                </div>
              </div>
           ))}
@@ -364,7 +374,7 @@ function OverviewTab({ user, setActiveTab }) {
   );
 }
 
-function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, onInitiateContact, onFindMatch }) {
+function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, onInitiateContact, onFindMatch, handleActionWithPaywall }) {
   const [selectedComp, setSelectedComp] = useState(null);
   
   const [searchPin, setSearchPin] = useState('');
@@ -418,6 +428,8 @@ function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, on
     return true;
   });
 
+  const displayDeck = activeFilter !== 'All' ? filteredDeck.slice(0, 3) : filteredDeck;
+
   return (
     <div className="animate-in fade-in flex flex-col h-full">
       <div className="mb-6 flex flex-col gap-6">
@@ -455,21 +467,23 @@ function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, on
       </div>
 
       <div className="flex-grow w-full pb-10">
-        {filteredDeck.length > 0 ? (
+        {displayDeck.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-8">
-            {filteredDeck.map((comp) => (
+            {displayDeck.map((comp) => (
               <CompanionFeedCard 
                 key={comp.id} 
                 comp={comp} 
                 onInitiateContact={() => {
-                  const favs = JSON.parse(localStorage.getItem('fairymeet_favorites') || '[]');
-                  if (!favs.find(f => f.id === comp.id)) {
-                    favs.push(comp);
-                    localStorage.setItem('fairymeet_favorites', JSON.stringify(favs));
-                  }
-                  onInitiateContact(comp);
+                  handleActionWithPaywall(() => {
+                    const favs = JSON.parse(localStorage.getItem('fairymeet_favorites') || '[]');
+                    if (!favs.find(f => f.id === comp.id)) {
+                      favs.push(comp);
+                      localStorage.setItem('fairymeet_favorites', JSON.stringify(favs));
+                    }
+                    onInitiateContact(comp);
+                  }, comp);
                 }} 
-                onViewProfile={setSelectedComp} 
+                onViewProfile={(c) => handleActionWithPaywall(() => setSelectedComp(c), c)} 
               />
             ))}
           </div>
@@ -555,8 +569,7 @@ function RequestsTab() {
                <p className="text-xs mt-2 font-medium">Status: <span className="text-yellow-600">● Pending</span></p>
              </div>
              <div className="flex gap-2 w-full sm:w-auto">
-               <button onClick={() => setSelectedComp(req)} className="flex-1 px-4 py-2 bg-off-white rounded-xl text-sm font-semibold hover:bg-rich-black/5">View Profile</button>
-               <button onClick={() => handleCancel(req.id)} className="flex-1 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100">Cancel</button>
+               <button onClick={() => handleCancel(req.id)} className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100">Cancel</button>
              </div>
           </div>
         ))

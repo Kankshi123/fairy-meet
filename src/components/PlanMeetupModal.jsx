@@ -17,8 +17,7 @@ export default function PlanMeetupModal({ isOpen, onClose, companion, user }) {
 
   if (!isOpen) return null;
 
-  const isFemale = user?.gender === 'Female';
-  const fee = isFemale ? 'Free' : '₹2,000';
+  const fee = '₹2,000';
 
   const handleConfirm = () => {
     if (!date || !time) return;
@@ -136,16 +135,14 @@ export default function PlanMeetupModal({ isOpen, onClose, companion, user }) {
               </div>
 
               {/* Fee Section */}
-              <div className={`rounded-2xl p-4 flex items-start justify-between gap-4 ${isFemale ? 'bg-pink-50 border border-pink-100' : 'bg-amber-50 border border-amber-100'}`}>
+              <div className="rounded-2xl p-4 flex items-start justify-between gap-4 bg-amber-50 border border-amber-100">
                 <div>
                   <p className="font-sans font-bold text-sm text-rich-black">Minimum Engagement Fee</p>
-                  <p className={`font-sans text-xs mt-1 ${isFemale ? 'text-rich-black/60' : 'text-amber-700'}`}>
-                    {isFemale
-                      ? 'As a verified female user, your date scheduling is completely free.'
-                      : 'A minimum engagement fee of ₹2,000 applies. This ensures companion commitment.'}
+                  <p className="font-sans text-xs mt-1 text-amber-700">
+                    A minimum engagement fee of ₹2,000 applies. This ensures companion commitment.
                   </p>
                 </div>
-                <span className={`font-serif text-2xl shrink-0 mt-0.5 ${isFemale ? 'text-vibrant-pink' : 'text-amber-700 font-bold'}`}>
+                <span className="font-serif text-2xl shrink-0 mt-0.5 text-amber-700 font-bold">
                   {fee}
                 </span>
               </div>
@@ -159,7 +156,7 @@ export default function PlanMeetupModal({ isOpen, onClose, companion, user }) {
                 {isProcessing ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  `Confirm Booking${!isFemale ? ' · ₹2,000' : ''}`
+                  `Confirm Booking · ₹2,000`
                 )}
               </button>
               <div className="flex items-center justify-center gap-1 text-[10px] text-rich-black/30 font-semibold uppercase tracking-wider -mt-2">

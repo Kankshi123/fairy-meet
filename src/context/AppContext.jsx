@@ -42,7 +42,7 @@ export function AppProvider({ children }) {
   const [meetups, setMeetups] = useState(() => loadState('meetups', initialMeetups));
   const [reviews, setReviews] = useState(() => loadState('reviews', initialReviews));
   const [unlockedConnections, setUnlockedConnections] = useState(() => loadState('unlockedConnections', []));
-  const [chatSubscription, setChatSubscription] = useState(() => loadState('chatSubscription', null));
+  const [chatSubscription, setChatSubscription] = useState(() => loadState('fairymeet_premium_subscription', null));
   const [companionProfile, setCompanionProfile] = useState(() => loadState('companionProfile', {
     bio: "Hi! I love deep conversations, exploring new cafes, and going on long drives. Let's make some memories.",
     services: ['Coffee & Conversation', 'Dinner Dates', 'Weekend Activities', 'Events & Parties', 'Travel Companion'],
@@ -55,14 +55,13 @@ export function AppProvider({ children }) {
     ]
   }));
 
-  // Persist to local storage on change
   useEffect(() => {
     localStorage.setItem('fairymeet_requests', JSON.stringify(requests));
     localStorage.setItem('fairymeet_connections', JSON.stringify(connections));
     localStorage.setItem('fairymeet_meetups', JSON.stringify(meetups));
     localStorage.setItem('fairymeet_reviews', JSON.stringify(reviews));
     localStorage.setItem('fairymeet_unlockedConnections', JSON.stringify(unlockedConnections));
-    localStorage.setItem('fairymeet_chatSubscription', JSON.stringify(chatSubscription));
+    localStorage.setItem('fairymeet_premium_subscription', JSON.stringify(chatSubscription));
     localStorage.setItem('fairymeet_companionProfile', JSON.stringify(companionProfile));
   }, [requests, connections, meetups, reviews, unlockedConnections, chatSubscription, companionProfile]);
 
@@ -111,6 +110,20 @@ export function AppProvider({ children }) {
     setChatSubscription({ plan, expiresAt: expiresAt.toISOString() });
   };
 
+  const checkSubscription = (user, mode) => {
+    const hasActiveSub = chatSubscription && new Date(chatSubscription.expiresAt) > new Date();
+    
+    if (mode === 'seeker') {
+      // Seekers of ALL genders must pay
+      return hasActiveSub;
+    } else if (mode === 'companion') {
+      // Companion females are free. Males and LGBTQ must pay
+      if (user?.gender === 'Female') return true;
+      return hasActiveSub;
+    }
+    return false;
+  };
+
   return (
     <AppContext.Provider value={{
       requests, setRequests,
@@ -120,7 +133,8 @@ export function AppProvider({ children }) {
       unlockedConnections, setUnlockedConnections,
       chatSubscription, setChatSubscription,
       companionProfile, updateProfile,
-      addRequest, acceptRequest, declineRequest, completeRequest, bookService, subscribeToChatPlan
+      addRequest, acceptRequest, declineRequest, completeRequest, bookService, subscribeToChatPlan,
+      checkSubscription
     }}>
       {children}
     </AppContext.Provider>
