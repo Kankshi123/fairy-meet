@@ -45,6 +45,14 @@ export const companions = [
 ];
 
 function CompanionFeedCard({ comp, onInitiateContact, onViewProfile }) {
+  const [isLiked, setIsLiked] = useState(false);
+
+  const handleLike = () => {
+    if (isLiked) return;
+    setIsLiked(true);
+    onInitiateContact(comp); // Triggers request logic/notification in background
+  };
+
   return (
     <div className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-rich-black/10 flex flex-col h-full">
       <div className="relative aspect-[4/5] w-full cursor-pointer group" onClick={() => onViewProfile(comp)}>
@@ -61,7 +69,7 @@ function CompanionFeedCard({ comp, onInitiateContact, onViewProfile }) {
             <span key={tag} className="px-3 py-1 bg-off-white text-rich-black rounded-full text-xs font-semibold">{tag}</span>
           ))}
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <button 
             onClick={() => onViewProfile(comp)}
             className="flex-1 py-3 px-4 bg-off-white text-rich-black font-semibold rounded-xl hover:bg-rich-black/5 transition-colors"
@@ -69,10 +77,15 @@ function CompanionFeedCard({ comp, onInitiateContact, onViewProfile }) {
             View Profile
           </button>
           <button 
-            onClick={() => onInitiateContact(comp)}
-            className="flex-1 py-3 px-4 bg-vibrant-pink text-white font-semibold rounded-xl shadow-md shadow-vibrant-pink/20 hover:shadow-lg hover:shadow-vibrant-pink/30 hover:-translate-y-0.5 transition-all"
+            onClick={handleLike}
+            title="Like Profile"
+            className={`p-3 rounded-xl transition-all flex items-center justify-center border ${
+              isLiked 
+                ? 'bg-vibrant-pink border-vibrant-pink text-white shadow-sm' 
+                : 'bg-white border-rich-black/10 text-rich-black/40 hover:text-vibrant-pink hover:border-vibrant-pink/30 hover:bg-vibrant-pink/5'
+            }`}
           >
-            Send Request
+            <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
           </button>
         </div>
       </div>
@@ -326,7 +339,10 @@ function OverviewTab({ user, setActiveTab }) {
           <button onClick={() => setActiveTab('discover')} className="text-sm font-semibold text-vibrant-pink hover:underline">View More</button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {companions.slice(0, 4).map(comp => (
+          {(user?.pincode 
+            ? companions.filter(c => c.pincode === user.pincode) 
+            : companions
+           ).slice(0, 4).map(comp => (
              <div key={comp.id} className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-rich-black/10 flex flex-col">
                <img src={comp.image} alt={comp.name} className="w-full aspect-square object-cover" />
                <div className="p-4 text-center">
@@ -336,6 +352,12 @@ function OverviewTab({ user, setActiveTab }) {
                </div>
              </div>
           ))}
+          
+          {(user?.pincode && companions.filter(c => c.pincode === user.pincode).length === 0) && (
+            <div className="col-span-full text-center p-8 bg-white border border-rich-black/10 rounded-[24px]">
+              <p className="text-rich-black/60">No companions found for your Pincode ({user.pincode}) right now.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
