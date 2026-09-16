@@ -20,8 +20,8 @@ export default function Footer({ onOpenPolicies }) {
               <li><a href="#how-it-works" className="hover:text-vibrant-pink transition-colors">How It Works</a></li>
               <li><a href="#stories" className="hover:text-vibrant-pink transition-colors">Stories</a></li>
               <li><a href="#safety" className="hover:text-vibrant-pink transition-colors">Safety</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">Contact</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-vibrant-pink transition-colors">About</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-vibrant-pink transition-colors">Contact</a></li>
             </ul>
           </div>
           
@@ -41,9 +41,9 @@ export default function Footer({ onOpenPolicies }) {
           <div>
             <h4 className="font-sans text-sm tracking-[0.15em] uppercase font-semibold mb-6">Social</h4>
             <ul className="space-y-4 font-sans text-sm text-rich-black/70">
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">Instagram</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">TikTok</a></li>
-              <li><a href="#" className="hover:text-vibrant-pink transition-colors">X</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-vibrant-pink transition-colors">Instagram</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-vibrant-pink transition-colors">TikTok</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-vibrant-pink transition-colors">X</a></li>
             </ul>
           </div>
 

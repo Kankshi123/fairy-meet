@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import LandingPage from './LandingPage';
 import SeekerDashboard, { companions } from './components/SeekerDashboard';
 import AuthModal from './components/AuthModal';
-import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal, NotificationsModal, SettingsModal, WalletModal } from './components/Modals';
+import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModal, DateModal, NotificationsModal, SettingsModal, WalletModal, WithdrawModal } from './components/Modals';
 import MatchModal from './components/MatchModal';
 import PoliciesPage from './PoliciesPage';
+import CompanionDashboard from './components/CompanionDashboard';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
-import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing', 'dashboard', 'policies'
@@ -23,6 +23,7 @@ function App() {
   // Modal states
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signup');
+  const [authRole, setAuthRole] = useState(null);
   const [isSubOpen, setIsSubOpen] = useState(false);
   const [isRechargeOpen, setIsRechargeOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -32,6 +33,7 @@ function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   
   // Pending connection state
   const [activeCompanion, setActiveCompanion] = useState(null);
@@ -41,26 +43,35 @@ function App() {
   const [pendingFindMatch, setPendingFindMatch] = useState(false);
   const [showMatchModal, setShowMatchModal] = useState(false);
 
-  const handleOpenAuth = (mode = 'signup', isForMatch = false) => {
-    setPendingFindMatch(isForMatch);
+  const handleOpenAuth = (mode = 'signup', role = null) => {
+    if (typeof role === 'boolean') {
+      setPendingFindMatch(role);
+      setAuthRole(null);
+    } else {
+      setAuthRole(role);
+    }
     setAuthMode(mode);
     setIsAuthOpen(true);
   };
 
-  const handleLogin = (gender, authData = {}) => {
+  const handleLogin = (gender, authData = {}, role = 'seeker') => {
     setUser({
+      role, // store role in user object
       gender,
-      name: authData.name || "Seeker",
+      name: authData.name || (role === 'companion' ? "Companion User" : "Seeker"),
       email: authData.email || "",
       aadhaar: authData.aadhaar || "",
       nickname: "",
       dob: "",
       photo: authData.photo || "",
+      city: authData.city || "",
+      state: authData.state || "",
+      pincode: authData.pincode || "",
       subscriptionActive: gender === 'Female', // Females get auto-subscription (free)
       walletBalance: 0
     });
     setIsAuthOpen(false);
-    setCurrentView('dashboard');
+    setCurrentView(role === 'companion' ? 'companion_dashboard' : 'dashboard');
     
     if (pendingFindMatch) {
       setPendingFindMatch(false);
@@ -86,7 +97,7 @@ function App() {
   };
 
   const handleGoToDashboard = () => {
-    setCurrentView('dashboard');
+    setCurrentView(user?.role === 'companion' ? 'companion_dashboard' : 'dashboard');
   };
 
   const handleOpenPolicies = (policyId = 'privacy') => {
@@ -95,7 +106,7 @@ function App() {
   };
 
   const handleBackFromPolicies = () => {
-    setCurrentView(user ? 'dashboard' : 'landing');
+    setCurrentView(user ? (user.role === 'companion' ? 'companion_dashboard' : 'dashboard') : 'landing');
   };
 
   const handleUpdateUser = (updates) => {
@@ -163,9 +174,21 @@ function App() {
         <LandingPage 
           onOpenAuth={handleOpenAuth} 
           onFindMatch={handleFindMatch} 
+          onBecomeSeeker={() => handleOpenAuth('signup', 'seeker')}
+          onBecomeCompanion={() => handleOpenAuth('signup', 'companion')}
           user={user}
           onGoToDashboard={handleGoToDashboard}
           onOpenPolicies={handleOpenPolicies}
+        />
+      ) : currentView === 'companion_dashboard' ? (
+        <CompanionDashboard 
+          user={user} 
+          onUpdateUser={setUser}
+          onLogout={() => { setUser(null); setCurrentView('landing'); }}
+          onSwitchMode={() => { setUser({...user, role: 'seeker'}); setCurrentView('dashboard'); }}
+          onSettings={() => setIsSettingsOpen(true)}
+          onOpenWallet={() => setIsWalletOpen(true)}
+          onGoToLanding={handleGoToLanding}
         />
       ) : (
         <SeekerDashboard 
@@ -180,6 +203,7 @@ function App() {
           onFindMatch={handleFindMatch}
           onGoToLanding={handleGoToLanding}
           onOpenPolicies={handleOpenPolicies}
+          onSwitchMode={() => { setUser({...user, role: 'companion'}); setCurrentView('companion_dashboard'); }}
         />
       )}
 
@@ -189,6 +213,7 @@ function App() {
         onClose={() => setIsAuthOpen(false)} 
         onLogin={handleLogin} 
         initialMode={authMode}
+        initialRole={authRole}
         onOpenPolicies={handleOpenPolicies}
       />
       
@@ -229,6 +254,13 @@ function App() {
         onOpenPolicies={handleOpenPolicies}
       />
 
+      <WithdrawModal
+        isOpen={isWithdrawOpen}
+        onClose={() => setIsWithdrawOpen(false)}
+        balance={4250} // Hardcoded for demo
+        onWithdrawSuccess={(amt) => console.log('Withdrawn', amt)}
+      />
+
       <UserProfileModal
         isOpen={isUserProfileOpen}
         onClose={() => setIsUserProfileOpen(false)}
@@ -265,7 +297,6 @@ function App() {
         companions={companions}
         onInitiateContact={handleInitiateContact}
       />
-      <ChatbotWidget />
     </SmoothScroll>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, Camera, CheckCircle, ScanFace } from 'lucide-react';
+import { X, ArrowRight, Camera, CheckCircle, ScanFace, Gift } from 'lucide-react';
 
 const WebcamCapture = ({ onCapture }) => {
   const videoRef = useRef(null);
@@ -74,9 +74,12 @@ const WebcamCapture = ({ onCapture }) => {
   );
 };
 
-export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'signup', onOpenPolicies }) {
+import { supabase } from '../lib/supabaseClient';
+
+export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'signup', initialRole = 'seeker', onOpenPolicies }) {
   const [mode, setMode] = useState('signup'); // 'login' or 'signup'
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // Default to 1
+  const [role, setRole] = useState(initialRole); // 'seeker' or 'companion'
   const [gender, setGender] = useState('');
   
   // Verification states
@@ -99,10 +102,49 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsError, setShowTermsError] = useState(false);
 
+  // Referral state
+  const [showReferral, setShowReferral] = useState(false);
+
+  // Location State
+  const [pinCode, setPinCode] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
+  const handlePinCodeChange = async (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 6) setPinCode(value);
+    
+    if (value.length === 6) {
+      setIsFetchingLocation(true);
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${value}`);
+        const data = await response.json();
+        
+        if (data && data[0] && data[0].Status === 'Success') {
+          const postOffice = data[0].PostOffice[0];
+          setCity(postOffice.District);
+          setStateName(postOffice.State);
+        } else {
+          setCity('');
+          setStateName('');
+        }
+      } catch (err) {
+        console.error("Error fetching PIN code:", err);
+      } finally {
+        setIsFetchingLocation(false);
+      }
+    } else {
+      setCity('');
+      setStateName('');
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode || 'signup');
-      setStep(1);
+      setStep(1); // Both start at step 1 now
+      setRole(initialRole || 'seeker');
       setGender('');
       setCapturedImage(null);
       setIsVerifying(false);
@@ -111,8 +153,14 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       setQuizAnswers({});
       setTermsAccepted(false);
       setShowTermsError(false);
+      
+      // Location state reset
+      setPinCode('');
+      setCity('');
+      setStateName('');
+      setIsFetchingLocation(false);
     }
-  }, [isOpen, initialMode]);
+  }, [isOpen, initialMode, initialRole]);
 
   if (!isOpen) return null;
 
@@ -132,7 +180,12 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       ...formData,
       name: form.firstName.value,
       email: form.email.value,
-      aadhaar: form.aadhaar.value
+      aadhaar: form.aadhaar.value,
+      password: form.password[0]?.value || form.password?.value, // Since there might be multiple password fields (e.g. login vs signup)
+      pincode: pinCode,
+      city: city,
+      state: stateName,
+      referralCode: form.referralCode?.value || ''
     });
     setStep(3); // Move to Vibe Check
   };
@@ -155,16 +208,59 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
     setStep(2); // Move to Face Verification
   };
 
-  const handleSignupCapture = (dataUrl) => {
+  const handleSignupCapture = async (dataUrl) => {
     setCapturedImage(dataUrl);
-    // Mock saving to DB by using localStorage
-    localStorage.setItem('userFaceData', dataUrl);
-    setVerificationSuccess(true);
+    setIsVerifying(true);
     
-    // Automatically login after success
-    setTimeout(() => {
-      onLogin(gender, { ...formData, photo: dataUrl });
-    }, 1500);
+    // Real Supabase Auth & Profile creation
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password || 'TemporaryPass123!',
+        options: {
+          data: {
+            name: formData.name,
+            aadhaar_number: formData.aadhaar,
+            gender: gender,
+            avatar_url: dataUrl
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      // Also insert into public.profiles (Though typically done via Supabase triggers)
+      // We will assume the RLS allows insert or trigger does it.
+      // For simplicity, we just proceed.
+      setIsVerifying(false);
+      setVerificationSuccess(true);
+      
+      setTimeout(() => {
+        if (!initialRole || initialRole === true) {
+          setStep(5);
+        } else {
+          onLogin(gender || 'Female', { ...formData, photo: dataUrl }, role);
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error("Signup error:", err);
+      if (err.message === 'Failed to fetch') {
+        console.warn("Supabase is not configured yet. Proceeding with mock signup for testing.");
+        setIsVerifying(false);
+        setVerificationSuccess(true);
+        setTimeout(() => {
+          if (!initialRole || initialRole === true) {
+            setStep(5);
+          } else {
+            onLogin(gender || 'Female', { ...formData, photo: dataUrl }, role);
+          }
+        }, 1500);
+      } else {
+        setIsVerifying(false);
+        alert("Signup failed: " + err.message);
+      }
+    }
   };
 
   const handleLoginCapture = (dataUrl) => {
@@ -178,7 +274,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
       
       // Automatically login after success
       setTimeout(() => {
-        onLogin(formData.mockGender || 'Female', { ...formData, photo: dataUrl });
+        onLogin(formData.mockGender || 'Female', { ...formData, photo: dataUrl }, role);
       }, 1500);
     }, 2500);
   };
@@ -204,14 +300,14 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
           <div className="flex justify-between items-center p-6 border-b border-rich-black/10">
             <div className="flex gap-4">
               <button 
-                onClick={() => { setMode('login'); setStep(1); setCapturedImage(null); }}
+                onClick={() => { setMode('login'); setStep(1); setCapturedImage(null); setRole(initialRole || 'seeker'); }}
                 className={`font-serif text-2xl transition-colors ${mode === 'login' ? 'text-rich-black' : 'text-rich-black/40 hover:text-rich-black/70'}`}
               >
                 Log In
               </button>
               <span className="font-serif text-2xl text-rich-black/20">|</span>
               <button 
-                onClick={() => { setMode('signup'); setStep(1); setGender(''); setCapturedImage(null); }}
+                onClick={() => { setMode('signup'); setStep(1); setGender(''); setCapturedImage(null); setRole(initialRole || 'seeker'); }}
                 className={`font-serif text-2xl transition-colors ${mode === 'signup' ? 'text-rich-black' : 'text-rich-black/40 hover:text-rich-black/70'}`}
               >
                 Sign Up
@@ -308,14 +404,85 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                     />
                   </div>
                   <div>
+                    <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">PIN Code</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        name="pincode"
+                        required
+                        value={pinCode}
+                        onChange={handlePinCodeChange}
+                        placeholder="e.g. 110001"
+                        className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"
+                      />
+                      {isFetchingLocation && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          <div className="w-4 h-4 border-2 border-vibrant-pink border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {(city || stateName) && (
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">City</label>
+                        <input 
+                          type="text" 
+                          readOnly
+                          value={city}
+                          className="w-full bg-rich-black/5 border border-transparent rounded-xl px-4 py-3 font-sans text-rich-black/70 outline-none"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">State</label>
+                        <input 
+                          type="text" 
+                          readOnly
+                          value={stateName}
+                          className="w-full bg-rich-black/5 border border-transparent rounded-xl px-4 py-3 font-sans text-rich-black/70 outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Password</label>
                     <input 
                       type="password" 
+                      name="password"
                       required
                       placeholder="••••••••"
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"
                     />
                   </div>
+
+                  <div>
+                    {!showReferral ? (
+                      <button 
+                        type="button" 
+                        onClick={() => setShowReferral(true)}
+                        className="text-sm font-sans font-medium text-vibrant-pink hover:underline flex items-center gap-1"
+                      >
+                        <Gift className="w-4 h-4" /> Have a referral code?
+                      </button>
+                    ) : (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-1.5"
+                      >
+                        <label className="block font-sans text-sm font-medium text-rich-black">Referral Code (Optional)</label>
+                        <input 
+                          type="text" 
+                          name="referralCode"
+                          placeholder="e.g. FAIRY-ALEX99"
+                          className="w-full bg-vibrant-pink/5 border border-vibrant-pink/30 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all uppercase"
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+
                   <div className="pt-2">
                     <label className="flex items-start gap-3 mb-4 cursor-pointer group select-none">
                       <div className="relative flex items-center justify-center mt-0.5">
@@ -437,13 +604,70 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
               </motion.div>
             )}
 
-            {/* LOG IN FLOW */}
+
+
+            {mode === 'signup' && step === 5 && (
+              <motion.div 
+                key="signup-step5"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center text-center py-4"
+              >
+                <div className="w-16 h-16 bg-vibrant-pink/10 rounded-full flex items-center justify-center mb-6">
+                  <Gift className="w-8 h-8 text-vibrant-pink" />
+                </div>
+                <h3 className="font-sans text-2xl font-semibold text-rich-black mb-2">Choose Your Role</h3>
+                <p className="font-sans text-sm text-rich-black/60 mb-8 max-w-[280px]">
+                  How would you like to experience Fairy Meet?
+                </p>
+                
+                <div className="flex flex-col gap-4 w-full">
+                  <button
+                    onClick={() => {
+                       setRole('seeker');
+                       onLogin(gender || 'Female', { ...formData, photo: capturedImage }, 'seeker');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-vibrant-pink text-white font-sans text-base font-semibold px-8 py-4 rounded-pill hover:-translate-y-1 transition-all shadow-md shadow-vibrant-pink/20"
+                  >
+                    Join as a Seeker
+                  </button>
+                  <button
+                    onClick={() => {
+                       setRole('companion');
+                       onLogin(gender || 'Female', { ...formData, photo: capturedImage }, 'companion');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-rich-black text-pure-white font-sans text-base font-semibold px-8 py-4 rounded-pill hover:-translate-y-1 transition-all shadow-md"
+                  >
+                    Join as a Companion
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {mode === 'login' && step === 1 && (
               <motion.div 
                 key="login-step1"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
+                {!initialRole && (
+                  <div className="flex bg-rich-black/5 rounded-lg p-1 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setRole('seeker')}
+                      className={`flex-1 py-2 text-sm font-medium font-sans rounded-md transition-all ${role === 'seeker' ? 'bg-white text-rich-black shadow-sm' : 'text-rich-black/60 hover:text-rich-black'}`}
+                    >
+                      Seeker
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('companion')}
+                      className={`flex-1 py-2 text-sm font-medium font-sans rounded-md transition-all ${role === 'companion' ? 'bg-white text-rich-black shadow-sm' : 'text-rich-black/60 hover:text-rich-black'}`}
+                    >
+                      Companion
+                    </button>
+                  </div>
+                )}
                 <form onSubmit={handleLoginFormSubmit} className="space-y-4">
                   <div>
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Email</label>

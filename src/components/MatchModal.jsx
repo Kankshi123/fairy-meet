@@ -43,6 +43,21 @@ export default function MatchModal({ isOpen, onClose, user, companions, onInitia
       return true; // LGBTQ+ sees both
     });
     
+    // Filter by location (City) if the user has provided one
+    if (user.city) {
+      filtered = filtered.filter(comp => comp.city && comp.city.toLowerCase() === user.city.toLowerCase());
+    }
+    
+    // If we filtered out everyone because of location, fallback to all (or maybe we just show empty/less, let's keep it if they exist, otherwise fallback to any location)
+    if (filtered.length === 0 && user.city) {
+       // fallback to gender-only filter if no matches in city
+       filtered = companions.filter(comp => {
+        if (user.gender === 'Female') return comp.gender === 'Male';
+        if (user.gender === 'Male') return comp.gender === 'Female';
+        return true; 
+      });
+    }
+    
     // Pick first 3
     return filtered.slice(0, 3);
   }, [user, companions]);
@@ -180,6 +195,15 @@ export default function MatchModal({ isOpen, onClose, user, companions, onInitia
                       <div className="flex justify-between items-start mb-1">
                         <h3 className="font-serif text-2xl text-rich-black font-medium">{comp.name}, <span className="text-lg opacity-80">{comp.age}</span></h3>
                       </div>
+                      {comp.city && (
+                        <p className="font-sans text-xs font-medium text-rich-black/50 mb-1 uppercase tracking-wider flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {comp.city}
+                        </p>
+                      )}
                       
                       <div className="flex flex-wrap gap-2 mb-6 mt-3">
                         {comp.tags.map(tag => (

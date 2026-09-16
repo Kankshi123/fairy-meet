@@ -1009,3 +1009,84 @@ export function WalletModal({ isOpen, onClose, currentBalance, onAddBalance, onO
     </AnimatePresence>
   );
 }
+
+export function WithdrawModal({ isOpen, onClose, balance = 0, onWithdrawSuccess }) {
+  const [amount, setAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleWithdraw = () => {
+    const numAmount = parseInt(amount);
+    if (!numAmount || numAmount < 100 || numAmount > balance) {
+      alert("Invalid amount. Minimum withdrawal is ₹100 and cannot exceed your balance.");
+      return;
+    }
+    setIsProcessing(true);
+    
+    // Simulate backend processing
+    setTimeout(() => {
+      setIsProcessing(false);
+      alert(`Successfully requested withdrawal of ₹${numAmount} to your verified bank account.`);
+      onClose();
+      if(onWithdrawSuccess) onWithdrawSuccess(numAmount);
+    }, 2000);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <Overlay onClose={onClose}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-hover"
+          >
+            <div className="flex justify-between items-center p-6 border-b border-rich-black/10">
+              <h3 className="font-serif text-2xl text-rich-black">Withdraw Funds</h3>
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-off-white text-rich-black hover:bg-rich-black hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="bg-vibrant-pink/5 border border-vibrant-pink/20 rounded-2xl p-4 mb-6">
+                <p className="font-sans text-sm text-rich-black/70 mb-1">Available Balance</p>
+                <p className="font-serif text-3xl text-vibrant-pink">₹{balance.toLocaleString()}</p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block font-sans text-sm font-medium text-rich-black mb-2">Amount to Withdraw</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-serif text-xl text-rich-black/50">₹</span>
+                  <input 
+                    type="number" 
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Min ₹100"
+                    className="w-full bg-white border border-rich-black/20 rounded-xl pl-10 pr-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink transition-all text-lg"
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  <button onClick={() => setAmount(balance.toString())} className="text-xs text-vibrant-pink font-semibold hover:underline">Withdraw All</button>
+                  <span className="text-xs text-rich-black/50">To: SBI Bank ending in 4589</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleWithdraw}
+                disabled={!amount || parseInt(amount) < 100 || parseInt(amount) > balance || isProcessing}
+                className="w-full bg-rich-black text-white font-sans font-semibold py-4 rounded-xl hover:bg-vibrant-pink disabled:opacity-40 disabled:hover:bg-rich-black transition-colors"
+              >
+                {isProcessing ? 'Processing...' : `Withdraw ₹${amount || '0'}`}
+              </button>
+              <p className="text-[11px] text-center text-rich-black/50 mt-4">Transfers take 1-2 business days to process.</p>
+            </div>
+          </motion.div>
+        </Overlay>
+      )}
+    </AnimatePresence>
+  );
+}

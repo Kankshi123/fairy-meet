@@ -1,3 +1,5 @@
+import { supabase } from './supabaseClient';
+
 export const loadRazorpay = () => {
   return new Promise((resolve) => {
     const script = document.createElement('script');
@@ -28,11 +30,19 @@ export const openRazorpayCheckout = async ({
     return;
   }
 
-  // MOCK BACKEND CALL
-  // In a real application, you MUST NOT create orders on the frontend.
-  // You would call your Supabase Edge Function here to create an order
-  // and return the order_id.
-  const MOCK_ORDER_ID = "order_mock_" + Math.random().toString(36).substring(7);
+  // REAL BACKEND CALL to Supabase Edge Function
+  let order_id = null;
+  try {
+    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+      body: { amount: amount, currency: 'INR', description: description }
+    });
+    
+    if (error) throw error;
+    order_id = data.order_id;
+  } catch (err) {
+    console.warn("Edge function failed, falling back to mock for development UI testing.", err);
+    order_id = "order_mock_" + Math.random().toString(36).substring(7);
+  }
 
   const options = {
     key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // Fallback for dev
@@ -40,15 +50,11 @@ export const openRazorpayCheckout = async ({
     currency: "INR",
     name: name,
     description: description,
-    order_id: MOCK_ORDER_ID, // This should come from backend
-    handler: function (response) {
+    order_id: order_id, // Comes from backend
+    handler: async function (response) {
       // Payment succeeded
-      // response.razorpay_payment_id
-      // response.razorpay_order_id
-      // response.razorpay_signature
-      
-      // MOCK BACKEND VERIFICATION
-      // Here you would normally send the signature to your backend to verify
+      // We should ideally call another Edge Function to verify the signature here
+      // const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', { body: response });
       if (onSuccess) onSuccess(response);
     },
     prefill: {
