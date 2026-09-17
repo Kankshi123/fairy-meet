@@ -10,7 +10,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹3500",
       duration: "3.5 hours",
       icon: Film,
-      color: "bg-purple-50 text-purple-600 border-purple-200"
+      color: "bg-purple-50 text-purple-600 border-purple-200",
+      image: "/services/movie.jpg"
     },
     {
       id: 2,
@@ -18,7 +19,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹2000",
       duration: "2 hours",
       icon: Users,
-      color: "bg-blue-50 text-blue-600 border-blue-200"
+      color: "bg-blue-50 text-blue-600 border-blue-200",
+      image: "/services/meeting.jpg"
     },
     {
       id: 3,
@@ -26,7 +28,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹2000",
       duration: "2 hours",
       icon: Coffee,
-      color: "bg-green-50 text-green-600 border-green-200"
+      color: "bg-green-50 text-green-600 border-green-200",
+      image: "/services/hangout.jpg"
     },
     {
       id: 4,
@@ -34,7 +37,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹4500",
       duration: "3 hours",
       icon: Music,
-      color: "bg-rose-50 text-rose-600 border-rose-200"
+      color: "bg-rose-50 text-rose-600 border-rose-200",
+      image: "/services/clubbing.jpg"
     },
     {
       id: 5,
@@ -42,7 +46,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹2500",
       duration: "3 hours",
       icon: Map,
-      color: "bg-orange-50 text-orange-600 border-orange-200"
+      color: "bg-orange-50 text-orange-600 border-orange-200",
+      image: "/services/city.jpg"
     },
     {
       id: 6,
@@ -50,7 +55,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹2000",
       duration: "3 hours",
       icon: CalendarHeart,
-      color: "bg-teal-50 text-teal-600 border-teal-200"
+      color: "bg-teal-50 text-teal-600 border-teal-200",
+      image: "/services/event.jpg"
     },
     {
       id: 7,
@@ -58,7 +64,8 @@ export default function ServicesSection({ onOpenAuth }) {
       price: "₹2000",
       duration: "2 hours",
       icon: Utensils,
-      color: "bg-yellow-50 text-yellow-600 border-yellow-200"
+      color: "bg-yellow-50 text-yellow-600 border-yellow-200",
+      image: "/services/cafe.jpg"
     }
   ];
 
@@ -112,27 +119,36 @@ export default function ServicesSection({ onOpenAuth }) {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => onOpenAuth('signup', 'seeker')}
-                className="group cursor-pointer bg-white rounded-3xl p-6 border border-rich-black/10 hover:border-vibrant-pink/50 shadow-sm hover:shadow-hover transition-all duration-300 relative overflow-hidden flex flex-col items-start"
+                className="group cursor-pointer bg-rich-black rounded-3xl p-6 border border-transparent hover:border-vibrant-pink/50 shadow-sm hover:shadow-hover transition-all duration-300 relative overflow-hidden flex flex-col items-start min-h-[280px]"
               >
-                {/* Hover gradient effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-vibrant-pink/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Background Image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-80 group-hover:opacity-40 transition-all duration-700 ease-out group-hover:scale-110 group-hover:blur-sm" 
+                  style={{ backgroundImage: `url(${service.image})` }} 
+                />
                 
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 relative z-10 border ${service.color}`}>
-                  <Icon className="w-7 h-7" />
-                </div>
+                {/* Gradient overlay for readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-rich-black/95 via-rich-black/50 to-rich-black/10 transition-opacity duration-500 group-hover:opacity-80" />
                 
-                <h3 className="font-serif text-xl text-rich-black mb-2 relative z-10 group-hover:text-vibrant-pink transition-colors">
-                  {service.title}
-                </h3>
-                
-                <div className="mt-auto pt-4 border-t border-rich-black/5 w-full relative z-10 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-sans text-xs text-rich-black/50 uppercase tracking-wider font-semibold mb-0.5">Price</span>
-                    <span className="font-sans font-bold text-lg text-rich-black">{service.price}</span>
+                {/* Content Container (Zooms on hover) */}
+                <div className="relative z-10 w-full h-full flex flex-col flex-grow transition-transform duration-500 ease-out group-hover:scale-105">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-pure-white/20 backdrop-blur-md border border-pure-white/30 text-pure-white shadow-lg">
+                    <Icon className="w-7 h-7" />
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="font-sans text-xs text-rich-black/50 uppercase tracking-wider font-semibold mb-0.5">Duration</span>
-                    <span className="font-sans font-medium text-rich-black/80">{service.duration}</span>
+                  
+                  <h3 className="font-serif text-2xl text-pure-white mb-2 transition-colors duration-300">
+                    {service.title}
+                  </h3>
+                  
+                  <div className="mt-auto pt-4 border-t border-pure-white/20 w-full flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="font-sans text-xs text-pure-white/70 uppercase tracking-wider font-semibold mb-0.5">Price</span>
+                      <span className="font-sans font-bold text-lg text-pure-white">{service.price}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-sans text-xs text-pure-white/70 uppercase tracking-wider font-semibold mb-0.5">Duration</span>
+                      <span className="font-sans font-medium text-pure-white/90">{service.duration}</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>

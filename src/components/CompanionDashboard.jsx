@@ -87,8 +87,16 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
       
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-rich-black/10 sticky top-0 h-screen">
-        <div onClick={onGoToLanding} className="p-6 border-b border-rich-black/10 cursor-pointer group">
-          <h2 className="font-serif text-2xl text-rich-black tracking-tight group-hover:text-vibrant-pink transition-colors">FAIRY MEET</h2>
+        <div className="p-6 border-b border-rich-black/10 flex-shrink-0">
+          <div onClick={onGoToLanding} className="cursor-pointer group flex items-center">
+            <motion.img 
+              layoutId="app-logo-img" 
+              src="/logo.png?v=3" 
+              alt="Fairy Meet" 
+              className="h-20 w-auto object-contain -ml-2"
+              transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
+            />
+          </div>
           <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">Companion Mode</p>
         </div>
         
@@ -143,7 +151,15 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
             >
               <div className="p-6 border-b border-rich-black/10 flex justify-between items-center">
                 <div onClick={onGoToLanding} className="cursor-pointer group">
-                  <h2 className="font-serif text-2xl text-rich-black group-hover:text-vibrant-pink transition-colors">FAIRY MEET</h2>
+                  <div className="flex items-center">
+                    <motion.img 
+                      layoutId="app-logo-img" 
+                      src="/logo.png?v=3" 
+                      alt="Fairy Meet" 
+                      className="h-16 w-auto object-contain -ml-2"
+                      transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
+                    />
+                  </div>
                   <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">Companion Mode</p>
                 </div>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-off-white rounded-full">

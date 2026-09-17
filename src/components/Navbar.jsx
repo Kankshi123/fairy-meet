@@ -35,14 +35,19 @@ export default function Navbar({ onOpenAuth, onFindMatch, user, onGoToDashboard 
       <header 
         className={cn(
           "fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ease-in-out border-b border-transparent",
-          scrolled || mobileMenuOpen ? "bg-off-white/90 backdrop-blur-md border-rich-black/10 py-4 shadow-sm" : "bg-off-white py-6"
+          scrolled || mobileMenuOpen ? "bg-off-white/90 backdrop-blur-md border-rich-black/10 py-2 shadow-sm" : "bg-off-white py-3"
         )}
       >
         <nav className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-1 group relative z-[101]">
-            <span className="font-serif text-2xl font-bold tracking-tight text-rich-black">FAIRY MEET</span>
-            <Sparkles className="w-4 h-4 text-vibrant-pink group-hover:text-rich-black transition-colors" />
+          <a href="#" className="flex items-center group relative z-[101]">
+            <motion.img 
+              layoutId="app-logo-img" 
+              src="/logo.png?v=3"
+              alt="Fairy Meet"
+              className="h-16 w-auto object-contain -ml-2 md:-ml-4"
+              transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
+            />
           </a>
 
           {/* Center Links (Desktop) */}

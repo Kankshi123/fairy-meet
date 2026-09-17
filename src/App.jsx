@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import LandingPage from './LandingPage';
 import SeekerDashboard, { companions } from './components/SeekerDashboard';
 import AuthModal from './components/AuthModal';
@@ -6,11 +7,13 @@ import { SubscriptionModal, RechargeModal, ChatModal, CallModal, UserProfileModa
 import MatchModal from './components/MatchModal';
 import PoliciesPage from './PoliciesPage';
 import CompanionDashboard from './components/CompanionDashboard';
+import SplashScreen from './components/SplashScreen';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [currentView, setCurrentView] = useState('landing'); // 'landing', 'dashboard', 'policies'
   const [activePolicy, setActivePolicy] = useState('privacy');
   const [user, setUser] = useState(null);
@@ -35,6 +38,14 @@ function App() {
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   
+  useEffect(() => {
+    // Lightning fast splash screen to animate logo into place
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Pending connection state
   const [activeCompanion, setActiveCompanion] = useState(null);
   const [pendingAction, setPendingAction] = useState(null); // 'chat' or 'call'
@@ -164,139 +175,154 @@ function App() {
 
   return (
     <SmoothScroll>
-      <CustomCursor />
-      {currentView === 'policies' ? (
-        <PoliciesPage 
-          initialPolicyId={activePolicy} 
-          onBack={handleBackFromPolicies} 
-        />
-      ) : currentView === 'landing' ? (
-        <LandingPage 
-          onOpenAuth={handleOpenAuth} 
-          onFindMatch={handleFindMatch} 
-          onBecomeSeeker={() => handleOpenAuth('signup', 'seeker')}
-          onBecomeCompanion={() => handleOpenAuth('signup', 'companion')}
-          user={user}
-          onGoToDashboard={handleGoToDashboard}
-          onOpenPolicies={handleOpenPolicies}
-        />
-      ) : currentView === 'companion_dashboard' ? (
-        <CompanionDashboard 
-          user={user} 
-          onUpdateUser={setUser}
-          onLogout={() => { setUser(null); setCurrentView('landing'); }}
-          onSwitchMode={() => { setUser({...user, role: 'seeker'}); setCurrentView('dashboard'); }}
-          onSettings={() => setIsSettingsOpen(true)}
-          onOpenWallet={() => setIsWalletOpen(true)}
-          onGoToLanding={handleGoToLanding}
-        />
+      <AnimatePresence mode="wait">
+        {showSplash ? (
+          <SplashScreen key="splash" />
       ) : (
-        <SeekerDashboard 
-          user={user} 
-          onInitiateContact={handleInitiateContact} 
-          onLogout={handleLogout}
-          onUpdateUser={handleUpdateUser}
-          onOpenProfile={() => setIsUserProfileOpen(true)}
-          onOpenNotifications={() => setIsNotificationsOpen(true)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenWallet={() => setIsWalletOpen(true)}
-          onFindMatch={handleFindMatch}
-          onGoToLanding={handleGoToLanding}
-          onOpenPolicies={handleOpenPolicies}
-          onSwitchMode={() => { setUser({...user, role: 'companion'}); setCurrentView('companion_dashboard'); }}
-        />
+        <motion.div
+          key="main-app"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="min-h-screen text-rich-black overflow-x-hidden w-full relative"
+        >
+          <CustomCursor />
+
+          {currentView === 'policies' ? (
+            <PoliciesPage 
+              initialPolicyId={activePolicy} 
+              onBack={handleBackFromPolicies} 
+            />
+          ) : currentView === 'landing' ? (
+            <LandingPage 
+              onOpenAuth={handleOpenAuth} 
+              onFindMatch={handleFindMatch} 
+              onBecomeSeeker={() => handleOpenAuth('signup', 'seeker')}
+              onBecomeCompanion={() => handleOpenAuth('signup', 'companion')}
+              user={user}
+              onGoToDashboard={handleGoToDashboard}
+              onOpenPolicies={handleOpenPolicies}
+            />
+          ) : currentView === 'companion_dashboard' ? (
+            <CompanionDashboard 
+              user={user} 
+              onUpdateUser={setUser}
+              onLogout={() => { setUser(null); setCurrentView('landing'); }}
+              onSwitchMode={() => { setUser({...user, role: 'seeker'}); setCurrentView('dashboard'); }}
+              onSettings={() => setIsSettingsOpen(true)}
+              onOpenWallet={() => setIsWalletOpen(true)}
+              onGoToLanding={handleGoToLanding}
+            />
+          ) : (
+            <SeekerDashboard 
+              user={user} 
+              onInitiateContact={handleInitiateContact} 
+              onLogout={handleLogout}
+              onUpdateUser={handleUpdateUser}
+              onOpenProfile={() => setIsUserProfileOpen(true)}
+              onOpenNotifications={() => setIsNotificationsOpen(true)}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenWallet={() => setIsWalletOpen(true)}
+              onFindMatch={handleFindMatch}
+              onGoToLanding={handleGoToLanding}
+              onOpenPolicies={handleOpenPolicies}
+              onSwitchMode={() => { setUser({...user, role: 'companion'}); setCurrentView('companion_dashboard'); }}
+            />
+          )}
+
+          {/* Modals */}
+          <AuthModal 
+            isOpen={isAuthOpen} 
+            onClose={() => setIsAuthOpen(false)} 
+            onLogin={handleLogin} 
+            initialMode={authMode}
+            initialRole={authRole}
+            onOpenPolicies={handleOpenPolicies}
+          />
+          
+          <SubscriptionModal 
+            isOpen={isSubOpen} 
+            onClose={() => setIsSubOpen(false)} 
+            onSubscribe={handleSubscribe} 
+            onOpenPolicies={handleOpenPolicies}
+          />
+          
+          <ChatModal 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)} 
+            companionName={activeCompanion} 
+            onScheduleDate={() => { setIsChatOpen(false); setIsDateOpen(true); }}
+          />
+          
+          <CallModal 
+            isOpen={isCallOpen} 
+            onClose={() => { setIsCallOpen(false); }}
+            companionName={activeCompanion} 
+            isFree={user?.gender === 'Female'}
+            onOpenChat={() => { setIsCallOpen(false); setIsChatOpen(true); }}
+          />
+          
+          <RechargeModal 
+            isOpen={isRechargeOpen} 
+            onClose={() => setIsRechargeOpen(false)} 
+            onOpenPolicies={handleOpenPolicies}
+          />
+
+          {/* Wallet Top-Up Modal */}
+          <WalletModal
+            isOpen={isWalletOpen}
+            onClose={() => setIsWalletOpen(false)}
+            currentBalance={user?.walletBalance || 0}
+            onAddBalance={handleAddWalletBalance}
+            onOpenPolicies={handleOpenPolicies}
+          />
+
+          <WithdrawModal
+            isOpen={isWithdrawOpen}
+            onClose={() => setIsWithdrawOpen(false)}
+            balance={4250} // Hardcoded for demo
+            onWithdrawSuccess={(amt) => console.log('Withdrawn', amt)}
+          />
+
+          <UserProfileModal
+            isOpen={isUserProfileOpen}
+            onClose={() => setIsUserProfileOpen(false)}
+            user={user}
+            onUpdateUser={handleUpdateUser}
+          />
+
+          <DateModal 
+            isOpen={isDateOpen}
+            onClose={() => setIsDateOpen(false)}
+            companionName={activeCompanion}
+            isFree={user?.gender === 'Female'}
+            onAddBooking={handleAddBooking}
+          />
+
+          <NotificationsModal 
+            isOpen={isNotificationsOpen}
+            onClose={() => setIsNotificationsOpen(false)}
+          />
+
+          <SettingsModal 
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            user={user}
+            bookings={bookings}
+            conversations={conversations}
+            transactions={transactions}
+          />
+
+          <MatchModal
+            isOpen={showMatchModal}
+            onClose={() => setShowMatchModal(false)}
+            user={user}
+            companions={companions}
+            onInitiateContact={handleInitiateContact}
+          />
+        </motion.div>
       )}
-
-      {/* Modals */}
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
-        onLogin={handleLogin} 
-        initialMode={authMode}
-        initialRole={authRole}
-        onOpenPolicies={handleOpenPolicies}
-      />
-      
-      <SubscriptionModal 
-        isOpen={isSubOpen} 
-        onClose={() => setIsSubOpen(false)} 
-        onSubscribe={handleSubscribe} 
-        onOpenPolicies={handleOpenPolicies}
-      />
-      
-      <ChatModal 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)} 
-        companionName={activeCompanion} 
-        onScheduleDate={() => { setIsChatOpen(false); setIsDateOpen(true); }}
-      />
-      
-      <CallModal 
-        isOpen={isCallOpen} 
-        onClose={() => { setIsCallOpen(false); }}
-        companionName={activeCompanion} 
-        isFree={user?.gender === 'Female'}
-        onOpenChat={() => { setIsCallOpen(false); setIsChatOpen(true); }}
-      />
-      
-      <RechargeModal 
-        isOpen={isRechargeOpen} 
-        onClose={() => setIsRechargeOpen(false)} 
-        onOpenPolicies={handleOpenPolicies}
-      />
-
-      {/* Wallet Top-Up Modal */}
-      <WalletModal
-        isOpen={isWalletOpen}
-        onClose={() => setIsWalletOpen(false)}
-        currentBalance={user?.walletBalance || 0}
-        onAddBalance={handleAddWalletBalance}
-        onOpenPolicies={handleOpenPolicies}
-      />
-
-      <WithdrawModal
-        isOpen={isWithdrawOpen}
-        onClose={() => setIsWithdrawOpen(false)}
-        balance={4250} // Hardcoded for demo
-        onWithdrawSuccess={(amt) => console.log('Withdrawn', amt)}
-      />
-
-      <UserProfileModal
-        isOpen={isUserProfileOpen}
-        onClose={() => setIsUserProfileOpen(false)}
-        user={user}
-        onUpdateUser={handleUpdateUser}
-      />
-
-      <DateModal 
-        isOpen={isDateOpen}
-        onClose={() => setIsDateOpen(false)}
-        companionName={activeCompanion}
-        isFree={user?.gender === 'Female'}
-        onAddBooking={handleAddBooking}
-      />
-
-      <NotificationsModal 
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
-      />
-
-      <SettingsModal 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        user={user}
-        bookings={bookings}
-        conversations={conversations}
-        transactions={transactions}
-      />
-
-      <MatchModal
-        isOpen={showMatchModal}
-        onClose={() => setShowMatchModal(false)}
-        user={user}
-        companions={companions}
-        onInitiateContact={handleInitiateContact}
-      />
+      </AnimatePresence>
     </SmoothScroll>
   );
 }

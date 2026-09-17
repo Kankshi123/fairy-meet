@@ -60,20 +60,6 @@ export default function FinalCTA({ onOpenAuth }) {
           Create your profile. Discover your people. See where it goes.
         </motion.p>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-6"
-        >
-          <button onClick={() => onOpenAuth('signup')} className="w-full sm:w-auto bg-rich-black text-pure-white font-sans text-base font-medium px-8 py-4 rounded-pill hover:bg-vibrant-pink transition-all hover:-translate-y-1 text-center shadow-soft group">
-            <span className="inline-block transition-transform group-hover:scale-105">Create Your Profile</span>
-          </button>
-          <a href="#explore" className="w-full sm:w-auto bg-transparent border border-rich-black/30 text-rich-black font-sans text-base font-medium px-8 py-4 rounded-pill hover:border-rich-black transition-all hover:-translate-y-1 text-center">
-            Explore Fairy Meet
-          </a>
-        </motion.div>
       </div>
     </section>
   );

@@ -164,7 +164,15 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-rich-black/10 sticky top-0 h-screen">
         <div className="p-6 border-b border-rich-black/10 flex justify-between items-center">
           <div onClick={onGoToLanding} className="cursor-pointer group">
-            <h2 className="font-serif text-2xl text-rich-black tracking-tight group-hover:text-vibrant-pink transition-colors">FAIRY MEET</h2>
+            <div className="flex items-center">
+              <motion.img 
+                layoutId="app-logo-img" 
+                src="/logo.png?v=3" 
+                alt="Fairy Meet" 
+                className="h-20 w-auto object-contain -ml-2"
+                transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
+              />
+            </div>
             <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">Seeker Mode</p>
           </div>
         </div>
@@ -227,7 +235,15 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
           >
             <div className="flex justify-between items-center mb-8">
               <div onClick={onGoToLanding} className="cursor-pointer group">
-                <h2 className="font-serif text-2xl group-hover:text-vibrant-pink transition-colors">FAIRY MEET</h2>
+                <div className="flex items-center">
+                  <motion.img 
+                    layoutId="app-logo-img" 
+                    src="/logo.png?v=3" 
+                    alt="Fairy Meet" 
+                    className="h-16 w-auto object-contain -ml-2"
+                    transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
+                  />
+                </div>
                 <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">Seeker Mode</p>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-off-white rounded-full"><XIcon className="w-5 h-5"/></button>
