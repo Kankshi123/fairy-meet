@@ -196,24 +196,73 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
     }
   };
 
-  const handleLoginFormSubmit = (e) => {
+  const handleLoginFormSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
-    setFormData({ 
-      mockGender: form.mockGender.value,
-      email: form.email.value,
-      name: 'Seeker', // Default for login since we don't have it
-      aadhaar: 'XXXX XXXX XXXX'
-    });
-    setStep(2); // Move to Face Verification
+    setIsVerifying(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.email.value,
+        password: form.password.value,
+      });
+
+      if (error) throw error;
+      
+      setFormData({ 
+        mockGender: form.mockGender.value,
+        email: form.email.value,
+        name: 'Seeker', // Default for login since we don't have it
+        aadhaar: 'XXXX XXXX XXXX'
+      });
+      setIsVerifying(false);
+      setStep(2); // Move to Face Verification
+    } catch (err) {
+      setIsVerifying(false);
+      alert("Login failed: " + err.message);
+    }
+  };
+
+  const base64ToBlob = (base64, mimeType) => {
+    const byteString = atob(base64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeType });
   };
 
   const handleSignupCapture = async (dataUrl) => {
     setCapturedImage(dataUrl);
     setIsVerifying(true);
     
-    // Real Supabase Auth & Profile creation
     try {
+      // 1. Try to upload Image to Supabase Storage (optional - signup continues even if this fails)
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const imageBlob = base64ToBlob(dataUrl, 'image/jpeg');
+
+      let publicUrl = dataUrl; // fallback to local data URL
+
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, imageBlob, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.warn("Storage upload failed, using local photo:", uploadError.message);
+        // Don't throw - continue signup with local photo
+      } else {
+        // 2. Get Public URL only if upload succeeded
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+        publicUrl = urlData?.publicUrl || dataUrl;
+      }
+
+      // 3. Real Supabase Auth & Profile creation
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password || 'TemporaryPass123!',
@@ -222,18 +271,32 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
             name: formData.name,
             aadhaar_number: formData.aadhaar,
             gender: gender,
-            avatar_url: dataUrl
+            avatar_url: publicUrl
           }
         }
       });
 
       if (error) throw error;
 
-      // Also insert into public.profiles (Though typically done via Supabase triggers)
-      // We will assume the RLS allows insert or trigger does it.
+      // Insert into public.profiles with role, city and pincode
+      if (data?.user) {
+        const capitalizedRole = role === 'companion' ? 'Companion' : 'Seeker';
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: formData.name,
+          email: formData.email,
+          gender: gender,
+          avatar_url: publicUrl,
+          role: capitalizedRole,
+          city: city || '',
+          pincode: pinCode || ''
+        });
+      }
+
       // For simplicity, we just proceed.
       setIsVerifying(false);
       setVerificationSuccess(true);
+
       
       setTimeout(() => {
         if (!initialRole || initialRole === true) {
@@ -683,6 +746,7 @@ export default function AuthModal({ isOpen, onClose, onLogin, initialMode = 'sig
                     <label className="block font-sans text-sm font-medium text-rich-black mb-1.5">Password</label>
                     <input 
                       type="password" 
+                      name="password"
                       required
                       placeholder="••••••••"
                       className="w-full bg-white border border-rich-black/20 rounded-xl px-4 py-3 font-sans text-rich-black outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink transition-all"

@@ -11,12 +11,67 @@ import SplashScreen from './components/SplashScreen';
 
 import SmoothScroll from './components/SmoothScroll';
 import CustomCursor from './components/CustomCursor';
+import { supabase } from './lib/supabaseClient';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentView, setCurrentView] = useState('landing'); // 'landing', 'dashboard', 'policies'
   const [activePolicy, setActivePolicy] = useState('privacy');
   const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchUserProfile(session.user);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (authUser) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+    
+    if (data) {
+      const storedRole = localStorage.getItem('fairymeet_role');
+      const resolvedRole = data.role || storedRole || 'seeker';
+      
+      // Merge auth user info with profile data
+      setUser(prev => ({
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        aadhaar: data.aadhaar_number,
+        gender: data.gender,
+        photo: data.avatar_url,
+        walletBalance: data.wallet_balance,
+        subscriptionActive: data.is_active_pass || data.gender === 'Female',
+        role: resolvedRole,
+        ...data
+      }));
+      
+      // Automatically redirect to the correct dashboard if they are on the landing page
+      setCurrentView(prevView => {
+        if (prevView === 'landing') {
+          return resolvedRole === 'companion' ? 'companion_dashboard' : 'dashboard';
+        }
+        return prevView;
+      });
+    }
+  };
 
   // Activity data
   const [bookings, setBookings] = useState([]);
@@ -66,21 +121,15 @@ function App() {
   };
 
   const handleLogin = (gender, authData = {}, role = 'seeker') => {
-    setUser({
-      role, // store role in user object
-      gender,
-      name: authData.name || (role === 'companion' ? "Companion User" : "Seeker"),
-      email: authData.email || "",
-      aadhaar: authData.aadhaar || "",
-      nickname: "",
-      dob: "",
-      photo: authData.photo || "",
-      city: authData.city || "",
-      state: authData.state || "",
-      pincode: authData.pincode || "",
-      subscriptionActive: gender === 'Female', // Females get auto-subscription (free)
-      walletBalance: 0
-    });
+    // Save role to local storage so it persists on refresh since it's not in DB yet
+    localStorage.setItem('fairymeet_role', role);
+    
+    setUser(prev => ({
+      ...prev,
+      role,
+      subscriptionActive: prev?.gender === 'Female' || gender === 'Female'
+    }));
+    
     setIsAuthOpen(false);
     setCurrentView(role === 'companion' ? 'companion_dashboard' : 'dashboard');
     
@@ -98,7 +147,8 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setCurrentView('landing');
   };
@@ -250,7 +300,9 @@ function App() {
           <ChatModal 
             isOpen={isChatOpen} 
             onClose={() => setIsChatOpen(false)} 
-            companionName={activeCompanion} 
+            companionName={activeCompanion}
+            companionId={null} // Null for now since activeCompanion is a string, handles mock mode gracefully
+            user={user}
             onScheduleDate={() => { setIsChatOpen(false); setIsDateOpen(true); }}
           />
           

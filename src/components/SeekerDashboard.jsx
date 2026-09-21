@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Phone, Search, Bell, Settings, LogOut, LayoutGrid, Layers, X as XIcon, Calendar, ChevronLeft, RefreshCw, User, Inbox, Users, Star, ShieldCheck, CheckCircle2, ChevronRight, Clock, MapPin, Coffee, Wallet, Compass, LayoutDashboard, Bookmark, Gift } from 'lucide-react';
 
@@ -10,6 +10,7 @@ import ReferAndEarn from './ReferAndEarn';
 import ChatSubscriptionModal from './ChatSubscriptionModal';
 import PlanMeetupModal from './PlanMeetupModal';
 import ChatPopupModal from './ChatPopupModal';
+import { supabase } from '../lib/supabaseClient';
 
 export const companions = [
   { id: 1, name: "Maya", gender: "Female", age: 27, status: "Online", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80", tags: ["Creative", "Travel"], rate: "₹5/min", city: "New Delhi", pincode: "110001" },
@@ -44,13 +45,14 @@ export const companions = [
   { id: 30, name: "Yash", gender: "Male", age: 29, status: "Online", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80", tags: ["Photography", "Music"], rate: "₹5/min", city: "Bangalore", pincode: "560001" }
 ];
 
-function CompanionFeedCard({ comp, onInitiateContact, onViewProfile }) {
+function CompanionFeedCard({ comp, onViewProfile }) {
   const [isLiked, setIsLiked] = useState(false);
+  const { sendConnectionRequest } = useAppContext();
 
   const handleLike = () => {
     if (isLiked) return;
     setIsLiked(true);
-    onInitiateContact(comp); // Triggers request logic/notification in background
+    sendConnectionRequest(comp.id); // Triggers request logic/notification in background
   };
 
   return (
@@ -145,7 +147,7 @@ export default function SeekerDashboard({ user, onUpdateUser, onLogout, onSwitch
       case 'discover': return <DiscoverTab user={user} setActiveTab={setActiveTab} setChatComp={setChatComp} onNavigateToMessages={handleNavigateToMessages} onInitiateContact={onInitiateContact} onFindMatch={onFindMatch} handleActionWithPaywall={handleActionWithPaywall} />;
       case 'favorites': return <FavoritesTab setActiveTab={setActiveTab} />;
       case 'requests': return <RequestsTab />;
-      case 'connections': return <ConnectionsTab setActiveTab={setActiveTab} />;
+      case 'connections': return <ConnectionsTab setActiveTab={setActiveTab} onNavigateToMessages={handleNavigateToMessages} />;
       case 'messages': return <MessagesTab onNavigateToMessages={handleNavigateToMessages} />;
       case 'meetups': return <MeetupsTab onNavigateToMessages={handleNavigateToMessages} />;
       case 'notifications': return <NotificationsTab />;
@@ -423,13 +425,35 @@ function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, on
     }
   };
 
-  const initialCompanions = companions.filter(comp => {
-    if (user?.gender === 'Female') return comp.gender === 'Male';
-    if (user?.gender === 'Male') return comp.gender === 'Female';
-    return true; 
-  });
+  const [deck, setDeck] = useState([]);
+  const [isFetchingDeck, setIsFetchingDeck] = useState(true);
 
-  const [deck, setDeck] = useState(initialCompanions);
+  useEffect(() => {
+    const fetchCompanions = async () => {
+      setIsFetchingDeck(true);
+      
+      // MOCK DATA OVERRIDE
+      setTimeout(() => {
+        const mapped = companions.map(p => ({
+          id: p.id.toString(), // Convert to string to match expected UUID format in UI
+          name: p.name,
+          gender: p.gender,
+          image: p.image,
+          avatar_url: p.image,
+          age: p.age,
+          city: p.city,
+          pincode: p.pincode,
+          role: 'Companion',
+          rate: p.rate,
+          tags: p.tags
+        }));
+        setDeck(mapped);
+        setIsFetchingDeck(false);
+      }, 500);
+    };
+    fetchCompanions();
+  }, [user]);
+
 
   const filteredDeck = deck.filter(comp => {
     // City filter
@@ -489,16 +513,6 @@ function DiscoverTab({ user, setActiveTab, setChatComp, onNavigateToMessages, on
               <CompanionFeedCard 
                 key={comp.id} 
                 comp={comp} 
-                onInitiateContact={() => {
-                  handleActionWithPaywall(() => {
-                    const favs = JSON.parse(localStorage.getItem('fairymeet_favorites') || '[]');
-                    if (!favs.find(f => f.id === comp.id)) {
-                      favs.push(comp);
-                      localStorage.setItem('fairymeet_favorites', JSON.stringify(favs));
-                    }
-                    onInitiateContact(comp);
-                  }, comp);
-                }} 
                 onViewProfile={(c) => handleActionWithPaywall(() => setSelectedComp(c), c)} 
               />
             ))}
@@ -554,12 +568,17 @@ function FavoritesTab() {
 }
 
 function RequestsTab() {
+  const { connections, setConnections } = useAppContext();
   const [filter, setFilter] = useState('Pending');
-  const [requests, setRequests] = useState([companions[0]]);
   const [selectedComp, setSelectedComp] = useState(null);
   
-  const handleCancel = (id) => {
-    setRequests(requests.filter(r => r.id !== id));
+  const myRequests = connections.filter(c => c.status === filter.toLowerCase());
+
+  const handleCancel = async (id) => {
+    const { error } = await supabase.from('connections').update({ status: 'cancelled' }).eq('id', id);
+    if (!error) {
+      setConnections(prev => prev.map(c => c.id === id ? { ...c, status: 'cancelled' } : c));
+    }
   };
 
   return (
@@ -571,24 +590,27 @@ function RequestsTab() {
         ))}
       </div>
       
-      {requests.length === 0 ? (
+      {myRequests.length === 0 ? (
         <div className="bg-white rounded-[24px] border border-rich-black/10 p-12 text-center text-rich-black/50">
           <p>No {filter.toLowerCase()} requests.</p>
         </div>
       ) : (
-        requests.map(req => (
-          <div key={req.id} className="bg-white rounded-[24px] border border-rich-black/10 p-5 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
-             <img src={req.image} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
-             <div className="flex-1 w-full text-center sm:text-left">
-               <h3 className="font-serif text-xl">{req.name}</h3>
-               <p className="text-sm text-rich-black/60">Coffee & Conversation</p>
-               <p className="text-xs mt-2 font-medium">Status: <span className="text-yellow-600">● Pending</span></p>
-             </div>
-             <div className="flex gap-2 w-full sm:w-auto">
-               <button onClick={() => handleCancel(req.id)} className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100">Cancel</button>
-             </div>
-          </div>
-        ))
+        myRequests.map(req => {
+          const comp = req.companion;
+          return (
+            <div key={req.id} className="bg-white rounded-[24px] border border-rich-black/10 p-5 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
+               <img src={comp?.avatar_url || 'https://via.placeholder.com/150'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+               <div className="flex-1 w-full text-center sm:text-left">
+                 <h3 className="font-serif text-xl">{comp?.name || 'Unknown'}</h3>
+                 <p className="text-sm text-rich-black/60">{comp?.services?.[0] || 'Coffee Date'}</p>
+                 <p className="text-xs mt-2 font-medium">Status: <span className="text-yellow-600 capitalize">● {req.status}</span></p>
+               </div>
+               <div className="flex gap-2 w-full sm:w-auto">
+                 {req.status === 'pending' && <button onClick={() => handleCancel(req.id)} className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100">Cancel</button>}
+               </div>
+            </div>
+          )
+        })
       )}
       
       <AnimatePresence>
@@ -598,28 +620,43 @@ function RequestsTab() {
   )
 }
 
-function ConnectionsTab({ setActiveTab }) {
+function ConnectionsTab({ setActiveTab, onNavigateToMessages }) {
+  const { connections } = useAppContext();
+  const activeConnections = connections.filter(c => c.status === 'accepted');
+
   return (
     <div className="animate-in fade-in space-y-6">
       <h2 className="font-serif text-3xl">My Connections</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex items-center gap-4">
-          <img src={companions[1].image} alt="" className="w-16 h-16 rounded-full object-cover shrink-0" />
-          <div className="flex-1">
-            <p className="font-semibold text-lg">{companions[1].name}</p>
-            <p className="text-xs text-green-600 font-bold uppercase tracking-wider">Active Connection</p>
+        {activeConnections.length === 0 ? (
+          <div className="col-span-full bg-white rounded-[24px] border border-rich-black/10 p-12 text-center text-rich-black/50">
+            <p>No active connections yet. Send some requests!</p>
           </div>
-          <button onClick={() => setActiveTab('messages')} className="p-3 bg-vibrant-pink/10 text-vibrant-pink rounded-full hover:bg-vibrant-pink hover:text-white transition-colors">
-            <MessageCircle className="w-5 h-5" />
-          </button>
-        </div>
+        ) : (
+          activeConnections.map(conn => {
+            const comp = conn.companion;
+            return (
+              <div key={conn.id} className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex items-center gap-4">
+                <img src={comp?.avatar_url || 'https://via.placeholder.com/150'} alt="" className="w-16 h-16 rounded-full object-cover shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-lg">{comp?.name}</p>
+                  <p className="text-xs text-green-600 font-bold uppercase tracking-wider">Active Connection</p>
+                </div>
+                <button onClick={() => onNavigateToMessages(comp)} className="p-3 bg-vibrant-pink/10 text-vibrant-pink rounded-full hover:bg-vibrant-pink hover:text-white transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                </button>
+              </div>
+            )
+          })
+        )}
       </div>
     </div>
   )
 }
 
 function MessagesTab({ onNavigateToMessages }) {
-  const chatList = companions.slice(0, 5);
+  const { connections } = useAppContext();
+  const chatList = connections.filter(c => c.status === 'accepted');
 
   return (
     <div className="animate-in fade-in h-[calc(100vh-160px)] flex flex-col">
@@ -629,22 +666,31 @@ function MessagesTab({ onNavigateToMessages }) {
           <input type="text" placeholder="Search past conversations..." className="w-full max-w-md px-5 py-3 rounded-full bg-white border border-rich-black/10 text-[15px] font-sans focus:outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink shadow-sm transition-all" />
         </div>
         <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
-          {chatList.map(comp => (
-            <button
-              key={comp.id}
-              onClick={() => onNavigateToMessages(comp)}
-              className="w-full text-left p-4 flex items-center gap-4 hover:bg-off-white/50 transition-colors border-b border-rich-black/5 last:border-b-0 rounded-2xl mb-1"
-            >
-              <img src={comp.image} className="w-14 h-14 rounded-full object-cover shrink-0 shadow-sm" alt={comp.name} />
-              <div className="overflow-hidden flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="font-serif text-lg text-rich-black">{comp.name}</p>
-                  <p className="font-sans text-xs text-rich-black/40">2h ago</p>
-                </div>
-                <p className="text-[14px] font-sans text-rich-black/60 truncate">Same here! When works for you?</p>
-              </div>
-            </button>
-          ))}
+          {chatList.length === 0 ? (
+            <div className="p-12 text-center text-rich-black/50">
+              <p>No active conversations.</p>
+            </div>
+          ) : (
+            chatList.map(conn => {
+              const comp = conn.companion;
+              return (
+                <button
+                  key={conn.id}
+                  onClick={() => onNavigateToMessages(comp)}
+                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-off-white/50 transition-colors border-b border-rich-black/5 last:border-b-0 rounded-2xl mb-1"
+                >
+                  <img src={comp?.avatar_url || 'https://via.placeholder.com/150'} className="w-14 h-14 rounded-full object-cover shrink-0 shadow-sm" alt={comp?.name} />
+                  <div className="overflow-hidden flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-serif text-lg text-rich-black">{comp?.name}</p>
+                      <p className="font-sans text-xs text-green-600">Active</p>
+                    </div>
+                    <p className="text-[14px] font-sans text-rich-black/60 truncate">Click to chat</p>
+                  </div>
+                </button>
+              )
+            })
+          )}
         </div>
       </div>
     </div>

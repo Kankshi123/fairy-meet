@@ -31,7 +31,7 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
   const { companionProfile, updateProfile, checkSubscription } = useAppContext();
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isOnline = companionProfile.isOnline;
+  const isOnline = companionProfile?.isOnline || false;
   const setIsOnline = (status) => updateProfile({ isOnline: status });
   const [showPaywall, setShowPaywall] = useState(false);
 
@@ -64,7 +64,7 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
       case 'connections':
         return <ConnectionsTab handleActionWithPaywall={handleActionWithPaywall} />;
       case 'messages':
-        return <MessagesTab handleActionWithPaywall={handleActionWithPaywall} />;
+        return <MessagesTab handleActionWithPaywall={handleActionWithPaywall} onNavigateToMessages={(comp) => { /* To be implemented in App.jsx integration */ }} />;
       case 'meetups':
         return <MeetupsTab setActiveTab={setActiveTab} />;
       case 'reviews':
@@ -160,7 +160,7 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
                       transition={{ layout: { duration: 1.2, ease: [0.43, 0.13, 0.23, 0.96] } }}
                     />
                   </div>
-                  <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">Companion Mode</p>
+                  <p className="text-[10px] font-semibold text-vibrant-pink uppercase tracking-widest mt-1">COMPANION MODE (CONNECTED) (CONNECTED)</p>
                 </div>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-off-white rounded-full">
                   <X className="w-5 h-5" />
@@ -289,8 +289,8 @@ export default function CompanionDashboard({ user, onUpdateUser, onLogout, onSwi
 // ==========================================
 
 function OverviewTab({ isOnline, setIsOnline, setActiveTab }) {
-  const { requests, meetups, connections } = useAppContext();
-  const newRequests = requests.filter(r => r.status === 'pending');
+  const { connections, meetups } = useAppContext();
+  const newRequests = connections.filter(r => r.status === 'pending');
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -303,7 +303,7 @@ function OverviewTab({ isOnline, setIsOnline, setActiveTab }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'New Requests', value: newRequests.length < 10 ? `0${newRequests.length}` : newRequests.length, highlight: true },
-          { label: 'Connections', value: connections.length },
+          { label: 'Connections', value: connections.filter(c => c.status === 'accepted').length },
           { label: 'Profile Views', value: '46' },
           { label: 'Rating', value: '4.8⭐' }
         ].map(stat => (
@@ -325,20 +325,22 @@ function OverviewTab({ isOnline, setIsOnline, setActiveTab }) {
             <div className="bg-white rounded-[24px] border border-rich-black/10 overflow-hidden shadow-sm">
               <div className="divide-y divide-rich-black/5">
                 {newRequests.length === 0 && <div className="p-6 text-center text-rich-black/50">No new requests</div>}
-                {newRequests.slice(0, 3).map(req => (
+                {newRequests.slice(0, 3).map(req => {
+                  const seeker = req.seeker;
+                  return (
                   <div key={req.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-off-white/50 transition-colors">
                     <div className="flex items-center gap-4">
-                      <img src={req.image} alt={req.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                      <img src={seeker?.avatar_url || 'https://via.placeholder.com/150'} alt={seeker?.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
                       <div>
-                        <p className="font-semibold">{req.name}, {req.age}</p>
-                        <p className="text-sm text-rich-black/60 flex items-center gap-1"><Coffee className="w-3 h-3"/> {req.intent}</p>
+                        <p className="font-semibold">{seeker?.name || 'Unknown User'}</p>
+                        <p className="text-sm text-rich-black/60 flex items-center gap-1"><Coffee className="w-3 h-3"/> Connection Request</p>
                       </div>
                     </div>
                     <button onClick={() => setActiveTab('requests')} className="px-4 py-2 bg-rich-black text-white text-sm font-medium rounded-full hover:bg-rich-black/80 transition-colors">
                       Accept
                     </button>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>
@@ -565,6 +567,10 @@ function ProfileTab({ user, onUpdateUser }) {
 function AvailabilityTab({ isOnline, setIsOnline, companionProfile, updateProfile }) {
   const [newLocation, setNewLocation] = useState("");
 
+  if (!companionProfile) {
+    return <div className="p-8 text-center text-rich-black/50">Loading profile data...</div>;
+  }
+
   const handleAddDay = () => {
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const currentDays = companionProfile.recurringHours.map(h => h.day);
@@ -667,11 +673,11 @@ function AvailabilityTab({ isOnline, setIsOnline, companionProfile, updateProfil
   );
 }
 
-function RequestsTab({ filter, setFilter }) {
-  const { requests, acceptRequest, declineRequest } = useAppContext();
+function RequestsTab({ filter, setFilter, handleActionWithPaywall }) {
+  const { connections, acceptRequest, declineRequest } = useAppContext();
   
-  const filteredRequests = requests.filter(r => r.status.toLowerCase() === filter.toLowerCase());
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const filteredRequests = connections.filter(c => c.status.toLowerCase() === filter.toLowerCase());
+  const pendingCount = connections.filter(c => c.status === 'pending').length;
 
   return (
     <div className="animate-in fade-in space-y-6">
@@ -690,26 +696,28 @@ function RequestsTab({ filter, setFilter }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredRequests.map(req => (
-          <div key={req.id} className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex flex-col sm:flex-row gap-4">
-             <img src={req.image} alt={req.name} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0" />
-             <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-serif text-xl">{req.name}, <span className="opacity-70 text-lg">{req.age}</span></h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-1 bg-off-white text-[10px] font-bold uppercase tracking-wider rounded-md text-rich-black/60">{req.intent}</span>
+        {filteredRequests.map(req => {
+          const seeker = req.seeker;
+          return (
+            <div key={req.id} className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex flex-col sm:flex-row gap-4">
+               <img src={seeker?.avatar_url || 'https://via.placeholder.com/150'} alt={seeker?.name} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0" />
+               <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-serif text-xl">{seeker?.name || 'Unknown User'}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="px-2 py-1 bg-off-white text-[10px] font-bold uppercase tracking-wider rounded-md text-rich-black/60">Connection Request</span>
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-rich-black/70 mt-2 flex items-center gap-1.5"><Clock className="w-4 h-4 text-vibrant-pink"/> {req.time}</p>
-                </div>
-                {filter === 'Pending' && (
-                  <div className="flex gap-2 mt-4 sm:mt-0 pt-2">
-                    <button onClick={() => handleActionWithPaywall(() => acceptRequest(req.id))} className="flex-1 py-2 bg-rich-black text-white text-sm font-semibold rounded-xl hover:bg-rich-black/80 transition-colors">Accept</button>
-                    <button onClick={() => declineRequest(req.id)} className="flex-1 py-2 bg-off-white text-rich-black text-sm font-semibold rounded-xl hover:bg-rich-black/5 transition-colors">Decline</button>
-                  </div>
-                )}
-             </div>
-          </div>
-        ))}
+                  {filter === 'Pending' && (
+                    <div className="flex gap-2 mt-4 sm:mt-0 pt-2">
+                      <button onClick={() => handleActionWithPaywall(() => acceptRequest(req.id))} className="flex-1 py-2 bg-rich-black text-white text-sm font-semibold rounded-xl hover:bg-rich-black/80 transition-colors">Accept</button>
+                      <button onClick={() => declineRequest(req.id)} className="flex-1 py-2 bg-off-white text-rich-black text-sm font-semibold rounded-xl hover:bg-rich-black/5 transition-colors">Decline</button>
+                    </div>
+                  )}
+               </div>
+            </div>
+          )
+        })}
         {filteredRequests.length === 0 && (
           <div className="col-span-full p-12 text-center text-rich-black/50">
             No {filter.toLowerCase()} requests found.
@@ -734,40 +742,61 @@ function ConnectionsTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {connections.map(conn => (
-            <div key={conn.id} className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex items-center gap-4">
-              <img src={conn.image} alt={conn.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
-              <div>
-                <p className="font-semibold text-lg">{conn.name}</p>
-                <p className="text-sm text-rich-black/60 flex items-center gap-1"><MessageSquare className="w-3 h-3"/> {conn.intent}</p>
+          {connections.filter(c => c.status === 'accepted').map(conn => {
+            const seeker = conn.seeker;
+            return (
+              <div key={conn.id} className="bg-white rounded-[24px] p-5 border border-rich-black/10 shadow-sm flex items-center gap-4">
+                <img src={seeker?.avatar_url || 'https://via.placeholder.com/150'} alt={seeker?.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
+                <div>
+                  <p className="font-semibold text-lg">{seeker?.name || 'Unknown User'}</p>
+                  <p className="text-sm text-rich-black/60 flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Active Connection</p>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
 
-function MessagesTab() {
+function MessagesTab({ handleActionWithPaywall, onNavigateToMessages }) {
+  const { connections } = useAppContext();
+  const chatList = connections.filter(c => c.status === 'accepted');
+
   return (
     <div className="animate-in fade-in h-[calc(100vh-160px)] flex flex-col">
       <h2 className="font-serif text-3xl mb-6 shrink-0">Messages</h2>
-      <div className="flex-1 bg-white rounded-[24px] border border-rich-black/10 overflow-hidden flex flex-col md:flex-row shadow-sm">
-        {/* Chat List */}
-        <div className="w-full md:w-80 border-r border-rich-black/10 flex flex-col bg-off-white/50 shrink-0 h-1/3 md:h-full overflow-y-auto">
-          <div className="p-4 border-b border-rich-black/5">
-            <input type="text" placeholder="Search chats..." className="w-full px-4 py-2 rounded-full bg-white border border-rich-black/10 text-sm focus:outline-none focus:border-vibrant-pink" />
-          </div>
-          <div className="p-4 flex items-center justify-center text-rich-black/40 text-sm h-full">
-            No recent messages
-          </div>
+      <div className="flex-1 bg-white rounded-[24px] border border-rich-black/10 overflow-hidden flex flex-col shadow-sm">
+        <div className="p-4 border-b border-rich-black/5 bg-off-white/30 shrink-0">
+          <input type="text" placeholder="Search past conversations..." className="w-full max-w-md px-5 py-3 rounded-full bg-white border border-rich-black/10 text-[15px] font-sans focus:outline-none focus:border-vibrant-pink focus:ring-1 focus:ring-vibrant-pink shadow-sm transition-all" />
         </div>
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col items-center justify-center text-rich-black/40 bg-white p-8 text-center h-2/3 md:h-full">
-          <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
-          <p className="text-lg font-serif">Select a conversation</p>
-          <p className="text-sm">Or accept a request to start chatting</p>
+        <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
+          {chatList.length === 0 ? (
+            <div className="p-12 text-center text-rich-black/50">
+              <p>No active conversations.</p>
+            </div>
+          ) : (
+            chatList.map(conn => {
+              const seeker = conn.seeker;
+              return (
+                <button
+                  key={conn.id}
+                  onClick={() => handleActionWithPaywall(() => onNavigateToMessages && onNavigateToMessages(seeker))}
+                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-off-white/50 transition-colors border-b border-rich-black/5 last:border-b-0 rounded-2xl mb-1"
+                >
+                  <img src={seeker?.avatar_url || 'https://via.placeholder.com/150'} className="w-14 h-14 rounded-full object-cover shrink-0 shadow-sm" alt={seeker?.name} />
+                  <div className="overflow-hidden flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-serif text-lg text-rich-black">{seeker?.name || 'Unknown User'}</p>
+                      <p className="font-sans text-xs text-green-600">Active</p>
+                    </div>
+                    <p className="text-[14px] font-sans text-rich-black/60 truncate">Click to chat</p>
+                  </div>
+                </button>
+              )
+            })
+          )}
         </div>
       </div>
     </div>

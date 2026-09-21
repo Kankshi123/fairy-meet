@@ -1,16 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const envUrl = import.meta.env.VITE_SUPABASE_URL;
-const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = 'https://jprsfmdbwsfikmosvtqn.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcnNmbWRid3NmaWttb3N2dHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MTMwMjEsImV4cCI6MjEwNTQ4OTAyMX0._kPtyqn-66HEQ8vkEeCdbfNBO16zWYqZcG-x_a2Gkas';
 
-const isValidUrl = (url) => url && (url.startsWith('http://') || url.startsWith('https://'));
+export const supabase = createClient(SUPABASE_URL, supabaseAnonKey);
 
-const supabaseUrl = isValidUrl(envUrl) ? envUrl : 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = envKey && envKey !== 'your_supabase_anon_key' ? envKey : 'placeholder-anon-key';
-
-if (!isValidUrl(envUrl) || !envKey) {
-  console.warn('Supabase credentials are missing or invalid. Please add a valid VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.');
-}
-
-// Fallback to placeholder strings to prevent crashes during initial setup
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);

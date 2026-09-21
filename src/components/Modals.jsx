@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, MessageCircle, Lock, Wallet, Sparkles, Calendar, MapPin, Coffee, Bell, Settings, Shield, EyeOff, UserCircle, ChevronRight, Camera, Plus, CreditCard, CheckCircle } from 'lucide-react';
 import { openRazorpayCheckout } from '../lib/razorpayClient';
+import { supabase } from '../lib/supabaseClient';
 
 const Overlay = ({ children, onClose }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -22,9 +23,31 @@ export function SubscriptionModal({ isOpen, onClose, onSubscribe, onOpenPolicies
     openRazorpayCheckout({
       amount: 199,
       description: "1-Month Active Pass",
-      onSuccess: (res) => {
-        setIsProcessing(false);
-        if(onSubscribe) onSubscribe();
+      onSuccess: async (res) => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            const currentUserId = session.user.id;
+            
+            // Insert transaction
+            await supabase.from('transactions').insert({
+              user_id: currentUserId,
+              amount: 19900, // in paise
+              status: 'paid',
+              description: '1-Month Active Pass'
+            });
+            
+            // Update profile
+            await supabase.from('profiles').update({ 
+              is_active_pass: true 
+            }).eq('id', currentUserId);
+          }
+        } catch (e) {
+          console.error("Subscription Error:", e);
+        } finally {
+          setIsProcessing(false);
+          if (onSubscribe) onSubscribe();
+        }
       },
       onFailure: (err) => {
         setIsProcessing(false);
@@ -80,24 +103,77 @@ export function SubscriptionModal({ isOpen, onClose, onSubscribe, onOpenPolicies
   );
 }
 
-export function ChatModal({ isOpen, onClose, companionName, onScheduleDate }) {
+export function ChatModal({ isOpen, onClose, companionName, companionId, user, onScheduleDate }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen || !user?.id || !companionId) {
+      if (isOpen && (!user?.id || !companionId)) {
+        // Fallback mock messages if testing with hardcoded UI
+        setMessages([{ text: "Hey! How are you?", sender: 'companion' }]);
+      }
+      return;
+    }
 
-  const handleSend = (e) => {
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${companionId}),and(sender_id.eq.${companionId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+        
+      if (data) {
+        setMessages(data.map(m => ({
+          text: m.content,
+          sender: m.sender_id === user.id ? 'user' : 'companion'
+        })));
+      }
+    };
+    fetchMessages();
+
+    const channel = supabase
+      .channel(`chat_${user.id}_${companionId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages',
+        filter: `receiver_id=eq.${user.id}`
+      }, (payload) => {
+        if (payload.new.sender_id === companionId) {
+          setMessages(prev => [...prev, { text: payload.new.content, sender: 'companion' }]);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isOpen, user?.id, companionId]);
+
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-    setMessages([...messages, { text: input, sender: 'user' }]);
+    
+    const msgText = input.trim();
     setInput('');
-    setIsTyping(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, { text: "That sounds magical! Tell me more.", sender: 'companion' }]);
-      setIsTyping(false);
-    }, 2500);
+    setMessages(prev => [...prev, { text: msgText, sender: 'user' }]);
+
+    if (user?.id && companionId) {
+      await supabase.from('messages').insert({
+        sender_id: user.id,
+        receiver_id: companionId,
+        content: msgText
+      });
+    } else {
+      setIsTyping(true);
+      setTimeout(() => {
+        setMessages(prev => [...prev, { text: "That sounds magical! Tell me more.", sender: 'companion' }]);
+        setIsTyping(false);
+      }, 2500);
+    }
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -220,18 +296,48 @@ export function RechargeModal({ isOpen, onClose, onOpenPolicies }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedAmt, setSelectedAmt] = useState(100);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     setIsProcessing(true);
     openRazorpayCheckout({
       amount: selectedAmt,
       description: "Wallet Recharge",
-      onSuccess: (res) => {
-        setIsProcessing(false);
-        onClose();
-        alert('Recharge successful!');
+      onSuccess: async (res) => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+             const currentUserId = session.user.id;
+             
+             // Insert transaction
+             await supabase.from('transactions').insert({
+               user_id: currentUserId,
+               amount: selectedAmt * 100,
+               status: 'paid',
+               description: 'Wallet Recharge'
+             });
+             
+             // Update wallet balance
+             const { data: profile } = await supabase.from('profiles')
+               .select('wallet_balance')
+               .eq('id', currentUserId)
+               .single();
+               
+             if (profile) {
+               await supabase.from('profiles').update({ 
+                 wallet_balance: (profile.wallet_balance || 0) + selectedAmt 
+               }).eq('id', currentUserId);
+             }
+          }
+          alert('Recharge successful!');
+        } catch(e) {
+          console.error("Recharge Error:", e);
+        } finally {
+          setIsProcessing(false);
+          onClose();
+        }
       },
       onFailure: (err) => {
         setIsProcessing(false);
+        alert('Payment failed');
       }
     });
   };

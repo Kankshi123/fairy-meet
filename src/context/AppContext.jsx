@@ -1,95 +1,145 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+import { supabase } from '../lib/supabaseClient';
+
 const AppContext = createContext();
 
 export function AppProvider({ children }) {
-  // Mock Initial Data
-  const initialRequests = [];
+  const [connections, setConnections] = useState([]);
+  const [meetups, setMeetups] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [unlockedConnections, setUnlockedConnections] = useState([]);
+  const [chatSubscription, setChatSubscription] = useState(null);
+  const [companionProfile, setCompanionProfile] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const initialMeetups = [
-    { id: 1, name: 'Ananya', date: '18 Sept', time: '6:30 PM', location: 'Rajpur Road', intent: 'Coffee', status: 'Confirmed', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200&h=200' },
-  ];
-
-  const initialReviews = [
-    { id: 1, name: 'Vikram', rating: 5, text: 'Amazing conversation and very polite!', date: '2 days ago' },
-    { id: 2, name: 'Sneha', rating: 4, text: 'Had a great time over coffee.', date: '1 week ago' },
-  ];
-
-  // Try to load from localStorage first
-  const loadState = (key, fallback) => {
-    try {
-      const saved = localStorage.getItem(`fairymeet_${key}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed === 'object' && !Array.isArray(parsed) && parsed !== null) {
-          return { ...fallback, ...parsed };
-        }
-        return parsed;
-      }
-      return fallback;
-    } catch (e) {
-      console.error("Error loading state", e);
-      return fallback;
-    }
-  };
-
-  const [requests, setRequests] = useState(() => {
-    // Clear out old mock requests from localstorage to fulfill user request
-    localStorage.removeItem('fairymeet_requests');
-    return initialRequests;
-  });
-  const [connections, setConnections] = useState(() => loadState('connections', []));
-  const [meetups, setMeetups] = useState(() => loadState('meetups', initialMeetups));
-  const [reviews, setReviews] = useState(() => loadState('reviews', initialReviews));
-  const [unlockedConnections, setUnlockedConnections] = useState(() => loadState('unlockedConnections', []));
-  const [chatSubscription, setChatSubscription] = useState(() => loadState('fairymeet_premium_subscription', null));
-  const [companionProfile, setCompanionProfile] = useState(() => loadState('companionProfile', {
-    bio: "Hi! I love deep conversations, exploring new cafes, and going on long drives. Let's make some memories.",
-    services: ['Coffee & Conversation', 'Dinner Dates', 'Weekend Activities', 'Events & Parties', 'Travel Companion'],
-    locations: ['Rajpur Road, Dehradun', 'Clement Town', 'Vasant Vihar'],
-    isOnline: true,
-    recurringHours: [
-      { id: 1, day: 'Monday', start: '18:00', end: '22:00' },
-      { id: 2, day: 'Tuesday', start: '18:00', end: '22:00' },
-      { id: 3, day: 'Wednesday', start: '18:00', end: '22:00' }
-    ]
-  }));
-
+  // Listen to auth changes and fetch user data
   useEffect(() => {
-    localStorage.setItem('fairymeet_requests', JSON.stringify(requests));
-    localStorage.setItem('fairymeet_connections', JSON.stringify(connections));
-    localStorage.setItem('fairymeet_meetups', JSON.stringify(meetups));
-    localStorage.setItem('fairymeet_reviews', JSON.stringify(reviews));
-    localStorage.setItem('fairymeet_unlockedConnections', JSON.stringify(unlockedConnections));
-    localStorage.setItem('fairymeet_premium_subscription', JSON.stringify(chatSubscription));
-    localStorage.setItem('fairymeet_companionProfile', JSON.stringify(companionProfile));
-  }, [requests, connections, meetups, reviews, unlockedConnections, chatSubscription, companionProfile]);
+    let subscriptionAuth;
+    const fetchUserData = async (userId) => {
+      if (!userId) return;
+      
+      // Fetch meetups
+      const { data: meetupsData } = await supabase
+        .from('meetups')
+        .select('*')
+        .or(`requester_id.eq.${userId},companion_id.eq.${userId}`);
+      if (meetupsData) setMeetups(meetupsData);
+
+      // Fetch reviews
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('companion_id', userId);
+      if (reviewsData) setReviews(reviewsData);
+
+      // MOCK CONNECTIONS FETCH
+      const storedConns = localStorage.getItem('fairymeet_connections');
+      if (storedConns) {
+        try {
+          const parsed = JSON.parse(storedConns);
+          setConnections(parsed.filter(c => c.seeker_id === userId || c.companion_id === userId));
+        } catch(e) {}
+      }
+      
+      // Fetch profile data for companion mode
+      let { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (!profileData) {
+        // Create a default profile row if one doesn't exist
+        const newProfile = { id: userId, is_online: false };
+        const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+        if (insertError) {
+          console.error("Failed to insert default profile:", insertError);
+        }
+        profileData = newProfile;
+      }
+      
+      setCompanionProfile({
+        bio: profileData.bio || '',
+        services: profileData.services || [],
+        locations: profileData.locations || [],
+        recurringHours: profileData.recurringHours || [],
+        isOnline: profileData.is_online || false,
+        role: profileData.role || 'Seeker',
+        city: profileData.city || '',
+        pincode: profileData.pincode || '',
+        name: profileData.name || '',
+        gender: profileData.gender || '',
+        avatar_url: profileData.avatar_url || '',
+        email: profileData.email || ''
+      });
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user || null);
+      if (session?.user) fetchUserData(session.user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+      if (session?.user) {
+        fetchUserData(session.user.id);
+      } else {
+        setMeetups([]);
+        setReviews([]);
+        setConnections([]);
+        setCompanionProfile(null);
+      }
+    });
+    
+    subscriptionAuth = subscription;
+    return () => subscriptionAuth?.unsubscribe();
+  }, []);
 
   // Actions
-  const updateProfile = (updates) => {
+  const updateProfile = async (updates) => {
+    // Always update UI immediately (optimistic update)
     setCompanionProfile(prev => ({ ...prev, ...updates }));
-  };
 
-  const addRequest = (newRequest) => {
-    setRequests(prev => [{...newRequest, id: Date.now(), status: 'pending'}, ...prev]);
-  };
+    if (!currentUser) {
+      console.warn('updateProfile: No authenticated user, skipping DB save');
+      return;
+    }
+    
+    // Map internal updates to DB column names if necessary
+    const dbUpdates = {};
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.services !== undefined) dbUpdates.services = updates.services;
+    if (updates.locations !== undefined) dbUpdates.locations = updates.locations;
+    if (updates.recurringHours !== undefined) dbUpdates.recurringHours = updates.recurringHours;
+    if (updates.isOnline !== undefined) dbUpdates.is_online = updates.isOnline;
 
-  const acceptRequest = (id) => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'accepted' } : req));
-    // Move to connections as well
-    const req = requests.find(r => r.id === id);
-    if (req && !connections.find(c => c.id === id)) {
-      setConnections(prev => [...prev, req]);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(dbUpdates)
+        .eq('id', currentUser.id);
+        
+      if (error) {
+        console.warn('Profile save to DB failed (will retry on next interaction):', error.message || error);
+      }
+    } catch (networkErr) {
+      console.warn('Network error saving profile:', networkErr.message);
     }
   };
 
-  const declineRequest = (id) => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'declined' } : req));
+  const updateMockConnection = (id, status) => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('fairymeet_connections') || '[]');
+      const updated = stored.map(c => c.id === id ? { ...c, status } : c);
+      localStorage.setItem('fairymeet_connections', JSON.stringify(updated));
+      setConnections(updated.filter(c => c.seeker_id === currentUser?.id || c.companion_id === currentUser?.id));
+    } catch(e) {}
   };
 
-  const completeRequest = (id) => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'completed' } : req));
-  };
+  const acceptRequest = async (id) => updateMockConnection(id, 'accepted');
+  const declineRequest = async (id) => updateMockConnection(id, 'declined');
+  const completeRequest = async (id) => updateMockConnection(id, 'completed');
 
   const bookService = (companionId) => {
     setUnlockedConnections(prev => {
@@ -124,17 +174,56 @@ export function AppProvider({ children }) {
     return false;
   };
 
+  const sendConnectionRequest = async (companionId) => {
+    if (!currentUser) return;
+    
+    // MOCK SEND CONNECTION
+    const newReq = { 
+      id: Math.random().toString(36).substr(2, 9),
+      seeker_id: currentUser.id, 
+      companion_id: companionId, 
+      status: 'pending',
+      // Provide mock profile details for the dashboard to render
+      seeker: { name: 'Test Seeker', gender: 'Female', avatar_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80', age: 24, city: 'New Delhi' },
+      companion: { name: 'Test Companion', gender: 'Female', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80' }
+    };
+    
+    try {
+      const stored = JSON.parse(localStorage.getItem('fairymeet_connections') || '[]');
+      stored.push(newReq);
+      localStorage.setItem('fairymeet_connections', JSON.stringify(stored));
+      setConnections(stored.filter(c => c.seeker_id === currentUser.id || c.companion_id === currentUser.id));
+      alert("Connection request sent (Mock)!");
+    } catch(e) {
+      alert("Could not send mock request right now.");
+    }
+  };
+
+  // Sync mock connections continuously so the Companion tab updates when Seeker clicks like
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (currentUser) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('fairymeet_connections') || '[]');
+          const userConns = stored.filter(c => c.seeker_id === currentUser.id || c.companion_id === currentUser.id);
+          setConnections(prev => prev.length !== userConns.length ? userConns : prev);
+        } catch(e) {}
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
   return (
     <AppContext.Provider value={{
-      requests, setRequests,
       connections, setConnections,
       meetups, setMeetups,
       reviews, setReviews,
       unlockedConnections, setUnlockedConnections,
       chatSubscription, setChatSubscription,
       companionProfile, updateProfile,
-      addRequest, acceptRequest, declineRequest, completeRequest, bookService, subscribeToChatPlan,
-      checkSubscription
+      currentUser,
+      acceptRequest, declineRequest, completeRequest, bookService, subscribeToChatPlan,
+      checkSubscription, sendConnectionRequest
     }}>
       {children}
     </AppContext.Provider>

@@ -33,15 +33,16 @@ export const openRazorpayCheckout = async ({
   // REAL BACKEND CALL to Supabase Edge Function
   let order_id = null;
   try {
+    // This will fail since we haven't deployed the edge function yet,
+    // but we can catch it and proceed without an order_id for frontend test mode.
     const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
       body: { amount: amount, currency: 'INR', description: description }
     });
     
     if (error) throw error;
-    order_id = data.order_id;
+    order_id = data?.order_id;
   } catch (err) {
-    console.warn("Edge function failed, falling back to mock for development UI testing.", err);
-    order_id = "order_mock_" + Math.random().toString(36).substring(7);
+    console.warn("Edge function failed, running without order_id for frontend test mode.", err);
   }
 
   const options = {
@@ -50,11 +51,9 @@ export const openRazorpayCheckout = async ({
     currency: "INR",
     name: name,
     description: description,
-    order_id: order_id, // Comes from backend
+    ...(order_id && { order_id }), // Only pass if it exists
     handler: async function (response) {
       // Payment succeeded
-      // We should ideally call another Edge Function to verify the signature here
-      // const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', { body: response });
       if (onSuccess) onSuccess(response);
     },
     prefill: {
